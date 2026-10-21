@@ -13,7 +13,7 @@ Estado: diseño sobre APIs **no verificadas en juego**. Todo lo marcado `[V]` de
 ```
 Echoes/
   42/mod.info
-  common/media/
+  42/media/
     sandbox-options.txt                       [V] sintaxis B42
     lua/shared/Echoes/
       Core.lua        namespace, versión, registro de módulos

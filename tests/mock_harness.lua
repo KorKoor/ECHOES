@@ -86,7 +86,7 @@ EchoesEngine_occlusion = function() return 0.55 end
 for _, f in ipairs({ "shared/Echoes/Core.lua","shared/Echoes/WorldEvents.lua","client/Echoes/Timer.lua","client/Echoes/Sounds.lua","client/Echoes/Engine.lua","shared/Echoes/ZombieUtil.lua",
   "client/Echoes/Weather.lua","client/Echoes/Acoustics.lua","client/Echoes/Body.lua","client/Echoes/Psyche.lua",
   "client/Echoes/Phenomena.lua","client/Echoes/Places.lua","client/Echoes/Stories.lua","client/Echoes/Senses.lua","client/Echoes/VehicleSense.lua","client/Echoes/Interaction.lua","client/Echoes/Visual.lua","client/Echoes/Director.lua","client/Echoes/RoomDecay.lua","client/Echoes/Fear.lua","client/Echoes/Dizzy.lua","server/Echoes/ZombieAwareness.lua","server/Echoes/Tracking.lua","client/Echoes/Debug.lua" }) do
-  dofile("/home/user/ECHOES/Echoes/common/media/lua/" .. f) end
+  dofile("/home/user/ECHOES/Echoes/42/media/lua/" .. f) end
 fire("OnGameStart")
 fire("EveryOneMinute"); fire("EveryTenMinutes"); fire("EveryHours")
 zresp = true; fire("EveryOneMinute")   -- zombie hears something

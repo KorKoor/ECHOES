@@ -1,4 +1,4 @@
 name=ECHOES
 id=Echoes
-description=Atmospheric unexplained phenomena. Prototype v0.0.1 (untested). Viewpoint is optional.
-versionMin=42.0.0
+description=Senses, fear, unexplained phenomena and smarter zombies (scent, blood, pack, searching). Optional: EchoesEngine (Java, needs ZombieBuddy) and Project Viewpoint. Prototype, untested in game.
+versionMin=42.20.0

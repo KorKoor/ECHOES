@@ -1,4 +1,4 @@
 name=Echoes Probe
 id=EchoesProbe
 description=Diagnostic spike for the ECHOES project. Logs which APIs are callable from Lua. Not a gameplay mod.
-versionMin=42.0.0
+versionMin=42.20.0

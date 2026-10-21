@@ -49,11 +49,18 @@ function Interaction.listen(player, door)
 end
 
 -- Timed action ------------------------------------------------------------------------------------
+-- Pattern copied from real Build 42 mods: require the vanilla class, derive, build with ISBaseTimedAction.new(self, actor).
 local function defineAction()
-    if ISListenAtDoor or not ISBaseTimedAction then return end
+    if ISListenAtDoor then return true end
+    pcall(require, "TimedActions/ISBaseTimedAction")
+    pcall(require, "TimedActions/ISTimedActionQueue")
+    if not ISBaseTimedAction then return false end
+
     ISListenAtDoor = ISBaseTimedAction:derive("ISListenAtDoor")
 
-    function ISListenAtDoor:isValid() return self.door ~= nil and not self.door:IsOpen() end
+    function ISListenAtDoor:isValid()
+        return self.door ~= nil and not self.door:IsOpen() and self.character ~= nil and not self.character:isDead()
+    end
     function ISListenAtDoor:update() pcall(function() self.character:faceThisObject(self.door) end) end
     function ISListenAtDoor:start() end
     function ISListenAtDoor:stop() ISBaseTimedAction.stop(self) end
@@ -62,9 +69,7 @@ local function defineAction()
         Echoes.safe("Interaction.listen", Interaction.listen, self.character, self.door)
     end
     function ISListenAtDoor:new(character, door)
-        local o = {}
-        setmetatable(o, self)
-        self.__index = self
+        local o = ISBaseTimedAction.new(self, character)
         o.character = character
         o.door = door
         o.stopOnWalk = true
@@ -72,27 +77,32 @@ local function defineAction()
         o.maxTime = 180
         return o
     end
+    return true
 end
 
-local function onFillWorldObjectContextMenu(playerNum, context, worldobjects, test)
-    if test or not Config.isEnabled("Interaction") then return end
+-- You must be next to the door: no walking helper is used (its B42 form is unverified).
+local function nearDoor(player, door)
+    local sq = door:getSquare()
+    if not sq or math.floor(player:getZ()) ~= sq:getZ() then return false end
+    local dx, dy = player:getX() - (sq:getX() + 0.5), player:getY() - (sq:getY() + 0.5)
+    return dx * dx + dy * dy <= 6.25 -- 2.5 tiles
+end
+
+local function onFillWorldObjectContextMenu(playerNum, context, worldObjects, test)
+    if not Config.isEnabled("Interaction") then return end
+    if not context or type(context.addOption) ~= "function" then return end
     local player = getSpecificPlayer(playerNum)
-    if not player then return end
-    for _, obj in ipairs(worldobjects) do
-        if instanceof(obj, "IsoDoor") and not obj:IsOpen() then
-            defineAction()
-            if not ISListenAtDoor then return end
-            local label = getText("ContextMenu_Echoes_ListenAtDoor")
-            context:addOption(label, worldobjects, function()
-                local sq = obj:getSquare()
-                if luautils and luautils.walkAdj and sq then
-                    if not luautils.walkAdj(player, sq) then return end
-                end
-                ISTimedActionQueue.add(ISListenAtDoor:new(player, obj))
+    if not player or player:isDead() then return end
+    for _, obj in ipairs(type(worldObjects) == "table" and worldObjects or {}) do
+        if instanceof(obj, "IsoDoor") and not obj:IsOpen() and nearDoor(player, obj) then
+            if test then return true end
+            if not defineAction() then return end
+            context:addOption(getText("ContextMenu_Echoes_ListenAtDoor"), obj, function(door)
+                ISTimedActionQueue.add(ISListenAtDoor:new(player, door))
             end)
             return
         end
     end
 end
 
-Events.OnFillWorldObjectContextMenu.Add(function(...) Echoes.safe("Interaction.menu", onFillWorldObjectContextMenu, ...) end)
+Events.OnFillWorldObjectContextMenu.Add(function(...) return Echoes.safe("Interaction.menu", onFillWorldObjectContextMenu, ...) end)
