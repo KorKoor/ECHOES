@@ -1,0 +1,7 @@
+name=ECHOES Engine (Java)
+id=EchoesEngine
+description=Optional Java layer for ECHOES. Requires ZombieBuddy. Makes zombie hearing physical: walls, doors, floors and weather reduce how strongly a zombie is drawn to a noise.
+require=\ZombieBuddy
+javaJarFile=media/java/EchoesEngine.jar
+javaPkgName=com.echoes.engine
+versionMin=42.0.0

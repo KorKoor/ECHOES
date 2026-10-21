@@ -183,6 +183,13 @@ local function runProbe()
     end)
     check("running flags", function() return tostring(player:isRunning()) .. "/" .. tostring(player:isSprinting()) end)
 
+    check("EchoesEngine (Java)", function()
+        if not EchoesEngine_version then return "not loaded (optional)" end
+        return "v" .. tostring(EchoesEngine_version()) .. " occlusion(self)=" .. tostring(
+            EchoesEngine_occlusion(player:getX(), player:getY(), player:getZ(), player:getX() + 6, player:getY(), player:getZ()))
+            .. " stats: " .. tostring(EchoesEngine_stats())
+    end)
+
     -- 8. Events we intend to use: do the Events entries exist?
     for _, ev in ipairs({ "OnGameStart", "OnPlayerUpdate", "EveryTenMinutes", "EveryHours", "EveryOneMinute", "OnKeyPressed",
             "OnZombieUpdate", "OnTick", "OnClientCommand", "OnServerCommand", "OnWorldSound",

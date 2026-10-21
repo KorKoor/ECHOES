@@ -61,13 +61,20 @@ function Acoustics.factor(srcSq, player, opts)
     local f = 1.0 - (dist / maxDist)
     f = f * f -- gentler near, steeper far
 
-    local ok, barriers = pcall(Acoustics.barriers, srcSq, plSq)
-    if ok and barriers then f = f * math.max(0, 1.0 - WALL_LOSS * barriers) end
+    -- With the Java engine, use the exact model zombies use (walls, doors, floors, envelope): the player and the
+    -- zombies then agree about what is muffled. Without it, fall back to the Lua estimate.
+    local engineFactor = Echoes.Engine and Echoes.Engine.occlusion(srcSq, plSq)
+    if engineFactor then
+        f = f * engineFactor
+    else
+        local ok, barriers = pcall(Acoustics.barriers, srcSq, plSq)
+        if ok and barriers then f = f * math.max(0, 1.0 - WALL_LOSS * barriers) end
 
-    local dz = math.abs(srcSq:getZ() - plSq:getZ())
-    f = f * math.max(0, 1.0 - LEVEL_LOSS * dz)
+        local dz = math.abs(srcSq:getZ() - plSq:getZ())
+        f = f * math.max(0, 1.0 - LEVEL_LOSS * dz)
 
-    if srcSq:isOutside() ~= plSq:isOutside() then f = f * (1.0 - EXTERIOR_LOSS) end
+        if srcSq:isOutside() ~= plSq:isOutside() then f = f * (1.0 - EXTERIOR_LOSS) end
+    end
 
     -- Rain and wind mask quiet sounds; panic or breathlessness dulls the listener a little.
     if Echoes.Weather then f = f * Echoes.Weather.hearingMultiplier(plSq) end

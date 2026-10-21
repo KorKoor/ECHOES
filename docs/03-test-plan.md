@@ -50,3 +50,6 @@ Todas con Debug activado (`[Echoes][DEBUG]` en `console.txt`).
 2. Con `EchoesProbe` activo, entrar en partida con Viewpoint instalado; esperar ~10 s (o F10).
 3. Enviar todas las líneas `[EchoesInv]` de `console.txt`.
 4. Enviar el listado de archivos de la carpeta del mod Viewpoint (workshop 3809306528) en tu disco.
+
+## EchoesEngine (Java) — v0.1.0
+Ver `docs/05-java-tier.md` § "EchoesEngine 0.1.0". Pasar: la línea `[EchoesEngine] ... loaded`, la salida de `EchoesEngine_stats()` (en el probe y tras el experimento de ruido tras muros), cualquier error de ZombieBuddy sobre el parche, y la diferencia observada con `EchoesEngine_set("hearingOcclusion",0/1)`.

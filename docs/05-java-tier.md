@@ -42,3 +42,44 @@ Además, **lista la carpeta del mod Viewpoint** en tu disco (Steam → `steamapp
 - **J1**: `EchoesEngine` mínimo: arranque, registro, versión y una función Lua de prueba; solo observa (Watches) y mide.
 - **J2**: primera capacidad, elegida con los datos (probablemente percepción de zombis o audio por sala, que no dependen de la cámara de Viewpoint).
 - **J3+**: cámara/inclinación y presencias visuales según lo que exponga Viewpoint.
+
+---
+
+# EchoesEngine 0.1.0 — primera capacidad Java (implementada, sin probar en juego)
+
+**Decisión tomada:** ECHOES usa ZombieBuddy. `EchoesEngine` es un mod separado (`require=\ZombieBuddy`); `Echoes` (Lua) sigue funcionando sin él y, si está presente, lo usa.
+
+## Qué hace: audición física de los zombis
+Parche sobre `zombie.WorldSoundManager.getSoundAttract(WorldSound, IsoZombie) -> float` (firma verificada en el Javadoc 42.20.0): la "atracción" de un zombi hacia un ruido se multiplica por un factor ≤ 1 que depende de:
+- **muros, puertas y ventanas cerradas** entre el origen del sonido y el zombi (usa `IsoGridSquare.isBlockedTo`, es decir las propias reglas del juego): ×0,55 por arista bloqueada;
+- **diferencia de pisos**: ×0,6 por piso;
+- **cruzar la envolvente del edificio** (interior↔exterior): ×0,85;
+- **lluvia y viento**: hasta −25 % y −10 %.
+Nunca baja de 0,08 y nunca aumenta. No revela posiciones. Es la **misma función** que usa el audio del jugador en Lua (`EchoesEngine_occlusion`), así que lo que a ti te suena amortiguado también lo oyen amortiguado los zombis.
+
+Coste controlado: caché de 400 ms por (sonido, zombi), líneas largas solo comprueban ambos extremos, contadores de uso y tiempo (`EchoesEngine_stats()`), y el parche **se desactiva solo tras 25 errores seguidos** devolviendo el valor original.
+
+## API Lua expuesta
+`EchoesEngine_version()`, `EchoesEngine_set(nombre, valor)` (`hearingOcclusion`, `weatherHearing`, `strength`, `maxLine`, `wallFactor`, `levelFactor`, `envelopeFactor`, `minFactor`, `cacheMs`), `EchoesEngine_stats()`, `EchoesEngine_resetStats()`, `EchoesEngine_occlusion(x0,y0,z0,x1,y1,z1)`. Sandbox: `EngineHearing` y `EngineStrength`.
+
+## Cómo está construido y qué se ha verificado
+- Código en `engine/` (fuente, `build.sh`, `stubs/`). El JAR se compila **sin el juego** contra stubs hechos a mano desde el Javadoc y `Patch.java` de ZombieBuddy; en ejecución se usan las clases reales, por lo que **las firmas deben coincidir exactamente**.
+- `./build.sh` compila y ejecuta `SelfTest` (mundo falso): muro = 0,55; dos muros = 0,3025; un piso = 0,6; envolvente = 0,85; sin muros = 1; un zombi a cielo abierto conserva el 100 % y detrás de dos muros el 30 %; el argumento erróneo no lanza; `strength 0.5` reduce a la mitad el efecto. **Resultado: todo pasa.** Esto prueba la lógica, no la integración con el juego.
+- JAR resultante: `EchoesEngine/42/media/java/EchoesEngine.jar` (compilado con `--release 17`).
+
+## Qué puede fallar y cómo lo veremos
+| Riesgo | Cómo se manifiesta | Cómo se comprueba |
+|---|---|---|
+| El float que devuelve `getSoundAttract` no es una "puntuación" proporcional | Zombis ignoran ruidos que antes oían, o no cambia nada | `EchoesEngine_stats()`: `adjusted`, `meanFactor`; prueba empírica: martillar tras 2 muros y ver si llegan menos zombis |
+| ZombieBuddy no aplica el parche (firma/clase) | El log de ZombieBuddy lo dice; `calls=0` en stats | `[EchoesEngine] v0.1.0 loaded` + `calls>0` tras hacer ruido |
+| `isBlockedTo` no incluye puertas cerradas | Menos efecto del esperado | Mismo experimento con una puerta cerrada |
+| Coste por llamada | FPS | `usPerCall` en stats; `maxLine`/`cacheMs` son ajustables en caliente |
+
+## Instalación (mañana)
+1. Instalar ZombieBuddy (si no lo tienes) y copiar `EchoesEngine/` a `~/Zomboid/mods/`.
+2. Activar `EchoesEngine` y `Echoes` en la partida. ZombieBuddy preguntará por aprobar el JAR (hash SHA-256); aceptar.
+3. Con Debug: `[EchoesEngine] v0.1.0 loaded` y `[Echoes] engine v0.1.0 hearing=true`.
+4. Experimento: dentro de un edificio de 2+ muros, golpear (o hacer ruido) y observar cuántos zombis exteriores acuden; luego `EchoesEngine_set("hearingOcclusion",0)` en la consola Lua y repetir. Leer `EchoesEngine_stats()`.
+
+## Siguientes capacidades (tras tus datos de `[EchoesInv]`)
+Percepción visual de zombis (luz, cono, sigilo), reverberación por sala, inclinación/cámara según lo que exponga Viewpoint, presencias en el mundo y post-proceso propio.

@@ -75,7 +75,11 @@ function getWorldSoundManager() return { addSound = function(_, _, x, y) played[
 function getOnlinePlayers() return list({ player }) end
 function sendServerCommand() end
 
-for _, f in ipairs({ "shared/Echoes/Core.lua","shared/Echoes/WorldEvents.lua","client/Echoes/Timer.lua","client/Echoes/Sounds.lua",
+EchoesEngine_version = function() return "0.1.0" end
+EchoesEngine_set = function(k, v) played[#played+1] = "SET:" .. k .. "=" .. tostring(v) end
+EchoesEngine_stats = function() return "stats" end
+EchoesEngine_occlusion = function() return 0.55 end
+for _, f in ipairs({ "shared/Echoes/Core.lua","shared/Echoes/WorldEvents.lua","client/Echoes/Timer.lua","client/Echoes/Sounds.lua","client/Echoes/Engine.lua",
   "client/Echoes/Weather.lua","client/Echoes/Acoustics.lua","client/Echoes/Body.lua","client/Echoes/Psyche.lua",
   "client/Echoes/Phenomena.lua","client/Echoes/Places.lua","client/Echoes/Stories.lua","client/Echoes/Senses.lua","client/Echoes/VehicleSense.lua","client/Echoes/Interaction.lua","client/Echoes/Visual.lua","client/Echoes/Director.lua","client/Echoes/RoomDecay.lua","server/Echoes/ZombieAwareness.lua" }) do
   dofile("/home/user/ECHOES/Echoes/common/media/lua/" .. f) end

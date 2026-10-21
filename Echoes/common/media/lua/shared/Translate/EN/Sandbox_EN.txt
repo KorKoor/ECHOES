@@ -15,6 +15,8 @@ Sandbox_EN = {
     Sandbox_Echoes_StoriesEnabled = "Environmental stories (locked doors, knocks)",
     Sandbox_Echoes_VisualEnabled = "Screen overlay: eye adaptation and glare (experimental)",
     Sandbox_Echoes_ApparitionsEnabled = "Rare fleeting silhouettes at the edge of vision (experimental)",
+    Sandbox_Echoes_EngineHearingEnabled = "Java engine: zombies hear through walls, doors and weather realistically",
+    Sandbox_Echoes_EngineStrength = "Java engine: strength of the hearing model (0-1)",
     Sandbox_Echoes_Frequency = "Phenomena frequency",
     Sandbox_Echoes_Debug = "Debug logging",
 }
