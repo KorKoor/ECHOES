@@ -137,3 +137,16 @@ Contexto: en Minecraft Java los shader packs funcionan porque OptiFine/Iris expo
 Riesgos del nivel C: Viewpoint trae su propio renderer, así que un shader escrito para el pipeline vanilla puede no aplicarse o romperse; además obliga al usuario a aceptar un JAR sin sandbox. Recomendación: **A y B en ECHOES core; C como add-on opcional separado ("Echoes Shaders") más adelante**, con spike propio.
 
 Idea concreta para Echoes con el nivel A: oscurecimiento/desaturación lenta y breve cuando ocurre un fenómeno (`SearchMode` en modo override con fade largo), sin sustos bruscos. Es compatible con la regla "efectos de pantalla mediante mecanismos existentes".
+
+## 10. Adenda 2: Viewpoint ya integra shaders de Minecraft (hallazgo importante)
+
+Según fichas de Workshop y guías (fuentes secundarias, no he podido abrirlas ni leer código de Viewpoint):
+- Viewpoint es un **renderer propio** (OpenGL moderno, pipeline PBR) con **puente a shader packs de Minecraft (estilo Iris)**: se colocan en `Zomboid/viewpoint-shaderpacks`, se elige el pack en *Supr → Graphics → Shaders*. Se citan BSL, Eclipse, Noble, Bliss, Solas, Complementary y Photon (Photon "probado por la comunidad" según una ficha; otra fuente lo trata como no verificado).
+- Existe un mod de compatibilidad "Viewpoint PZO Eclipse Shader Compatibility" (Workshop 3815225881) para 42.21 / Viewpoint 0.1.5a-0.1.6 / ZombieBuddy ≥ 2.3.0, y "Viewpoint Rolling Hills" (3815630947) que declara soportar el puente. La documentación de shaders de Viewpoint figuraba como "próximamente".
+- Guía: pzmanual.com/guides/project-zomboid-shaders/. Errores de shader: `Zomboid/console.txt`.
+
+Consecuencias para ECHOES:
+1. **Los efectos vanilla (`SearchMode`, `setDesaturation`) pueden no verse o verse distintos con un shader pack activo** (el pack reemplaza el post-proceso). Hay que probarlo con y sin pack; no asumir.
+2. **Capa de UI 2D (nivel B) pasa a ser el fallback fiable**: se dibuja encima de cualquier renderer.
+3. **Oportunidad:** un shader pack es solo texto GLSL empaquetado. Un "Echoes shader pack" (viñeta, aberración, ruido, desaturación localizada) sería 100% programático, sin arte, y no requeriría Java en ECHOES. Pero depende del formato soportado por Viewpoint, aún sin documentación pública → no se empieza hasta leerla.
+4. No competir con Photon/BSL: no son mods de ECHOES; solo se garantiza que ECHOES no se rompe con ellos (caso de prueba obligatorio: Photon y BSL activos).
