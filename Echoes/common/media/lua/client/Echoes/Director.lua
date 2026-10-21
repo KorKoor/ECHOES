@@ -16,11 +16,13 @@ local CALLBACK_WINDOW_HOURS = 36
 
 -- Sound kinds. `static` names are tried first (if the game knows them); `patterns` is the fallback search.
 Director.kinds = {
-    { id = "door", weight = 1.0, needsDoor = true, volume = 0.85, ambiguous = true,
+    { id = "knock", weight = 0.5, needsDoor = true, volume = 0.8, ambiguous = true, theme = "knock",
+      static = {}, patterns = { "knock" }, exclude = { "zombie", "locked" }, optional = true },
+    { id = "door", weight = 1.0, needsDoor = true, volume = 0.85, ambiguous = true, theme = "door",
       static = { "DoorClose", "DoorOpen" }, patterns = { "door" }, exclude = { "car", "vehicle", "garage", "locked" } },
-    { id = "footsteps", weight = 1.4, volume = 0.7, ambiguous = true, steps = { 4, 7 }, interval = { 450, 650 },
+    { id = "footsteps", weight = 1.4, volume = 0.7, ambiguous = true, theme = "steps", steps = { 4, 7 }, interval = { 450, 650 },
       static = { "FootstepsIndoor" }, patterns = { "footstep", "step" }, exclude = { "zombie", "vehicle", "gun" } },
-    { id = "voice", weight = 0.4, volume = 0.5, ambiguous = true, optional = true,
+    { id = "voice", weight = 0.4, volume = 0.5, ambiguous = true, optional = true, theme = "voice",
       static = {}, patterns = { "whisper", "murmur" }, exclude = {} },
 }
 
@@ -63,11 +65,12 @@ local function availableKinds()
     return out
 end
 
-local function pickKind(list, pressure)
+local function pickKind(list, pressure, theme)
     local total = 0
     local w = {}
     for i, k in ipairs(list) do
         w[i] = k.weight * (k.ambiguous and (1.0 + pressure) or 1.0)
+        if theme and (k.theme == theme or k.id == theme) then w[i] = w[i] * 4 end -- a haunted place keeps its habits
         total = total + w[i]
     end
     local r = ZombRandFloat(0, total)
@@ -82,7 +85,7 @@ end
 local function ringSquare(player, minD, maxD, behind)
     local ang = ZombRand(360) * math.pi / 180
     if behind then -- "a noise behind you": within 70 degrees of the direction opposite to where you face
-        local back = math.atan2(player:getForwardDirectionY(), player:getForwardDirectionX()) + math.pi
+        local back = Echoes.atan2(player:getForwardDirectionY(), player:getForwardDirectionX()) + math.pi
         ang = back + (ZombRandFloat(0, 1) - 0.5) * (140 * math.pi / 180)
     end
     local dist = minD + ZombRand(maxD - minD + 1)
@@ -124,10 +127,8 @@ local function findWalkableSquare(player, behind)
     return best
 end
 
--- Remembered place: a place where something happened to the player (Places) or a past phenomenon.
+-- Remembered square from a past phenomenon (haunted Places are handled in evaluate).
 local function callbackSquare(mem, player)
-    local place = Echoes.Places and Echoes.Places.pick(player, GLOBAL_COOLDOWN_HOURS)
-    if place and ZombRandFloat(0, 1) < 0.5 then return place end
     local t = nowHours()
     for i = #mem.log, 1, -1 do
         local e = mem.log[i]
@@ -140,16 +141,20 @@ local function callbackSquare(mem, player)
 end
 
 -- Staged playback -----------------------------------------------------------------------------
-local function playKindAt(kind, sq, player)
+local function playKindAt(kind, sq, player, volMult)
     local f = Echoes.Acoustics.factor(sq, player, { maxDist = 26 })
     if f <= 0.02 then return nil end
-    return Echoes.Sounds.playAt(sq:getX() + 0.5, sq:getY() + 0.5, sq:getZ(), candidates(kind), kind.volume * f, 0.06,
-        kind.ambiguous)
+    return Echoes.Sounds.playAt(sq:getX() + 0.5, sq:getY() + 0.5, sq:getZ(), candidates(kind),
+        Echoes.clamp(kind.volume * f * (volMult or 1.0), 0, 1), 0.06, kind.ambiguous)
 end
 
-local function stageFootsteps(kind, startSq, player)
+local function stageFootsteps(kind, startSq, player, stage)
+    stage = stage or 0
     local ang = ZombRand(360) * math.pi / 180
-    local n = kind.steps[1] + ZombRand(kind.steps[2] - kind.steps[1] + 1)
+    if stage >= 3 then -- late stages: the steps walk toward you
+        ang = Echoes.atan2(player:getY() - startSq:getY(), player:getX() - startSq:getX())
+    end
+    local n = kind.steps[1] + ZombRand(kind.steps[2] - kind.steps[1] + 1) + stage
     local cell = getCell()
     local x0, y0, z = startSq:getX() + 0.5, startSq:getY() + 0.5, startSq:getZ()
     local delay, placed = 0, 0
@@ -159,7 +164,7 @@ local function stageFootsteps(kind, startSq, player)
         if not sq or not sq:isFree(false) then break end
         Echoes.Timer.after(delay, function()
             local p = getPlayer()
-            if p then playKindAt(kind, sq, p) end
+            if p then playKindAt(kind, sq, p, 1.0 + 0.12 * stage) end
         end)
         delay = delay + kind.interval[1] + ZombRand(kind.interval[2] - kind.interval[1] + 1)
         placed = placed + 1
@@ -206,33 +211,52 @@ function Director.evaluate(force)
     end
     if #kinds == 0 then Log.debug("no phenomenon available"); return end
 
-    local kind = pickKind(kinds, pressure)
+    -- Maybe return to a haunted place: it has a theme (what it does) and a stage (how far it has escalated).
+    local place, placeSq
+    if Echoes.Places and ZombRandFloat(0, 1) < CALLBACK_CHANCE then
+        placeSq, place = Echoes.Places.pick(player, GLOBAL_COOLDOWN_HOURS)
+    end
+    local stage = place and place.stage or 0
+
+    local kind = pickKind(kinds, pressure, place and place.theme)
     local sq, remembered
 
     if kind.run then
         sq = kind.run(player)
         if not sq then Log.debug("could not stage " .. kind.id); return end
     else
-        remembered = (ZombRandFloat(0, 1) < CALLBACK_CHANCE) and callbackSquare(mem, player) or nil
+        remembered = placeSq or ((ZombRandFloat(0, 1) < CALLBACK_CHANCE) and callbackSquare(mem, player) or nil)
         local behind = (not kind.needsDoor) and ZombRandFloat(0, 1) < (0.25 + 0.35 * pressure)
         sq = remembered or (kind.needsDoor and findDoorSquare(player) or findWalkableSquare(player, behind))
         if not sq then Log.debug("no source square for " .. kind.id); return end
         if kind.steps then
-            if stageFootsteps(kind, sq, player) == 0 then Log.debug("no walkable path"); return end
-        elseif not playKindAt(kind, sq, player) then
+            if stageFootsteps(kind, sq, player, stage) == 0 then Log.debug("no walkable path"); return end
+        elseif not playKindAt(kind, sq, player, 1.0 + 0.12 * stage) then
             Log.debug("sound inaudible or could not be played: " .. kind.id)
             return
         end
+        -- Escalated places sometimes answer themselves a few seconds later, a little to the side.
+        if stage > 0 and ZombRandFloat(0, 1) < 0.15 * stage and not kind.steps then
+            local cell = getCell()
+            Echoes.Timer.after(3000 + ZombRand(5000), function()
+                local p2 = getPlayer()
+                local sq2 = cell:getGridSquare(sq:getX() + ZombRand(-2, 3), sq:getY() + ZombRand(-2, 3), sq:getZ())
+                if p2 and sq2 then playKindAt(kind, sq2, p2, 0.8) end
+            end)
+        end
     end
+    if place and Echoes.Places then Echoes.Places.escalate(place) end
 
     if kind.ambiguous and Echoes.Fear then Echoes.Fear.shock(0.12 + 0.2 * pressure) end
 
     mem.last = t
     mem.log[#mem.log + 1] = { id = kind.id, sq = not kind.run, x = sq:getX(), y = sq:getY(), z = sq:getZ(), t = t,
-        callback = remembered ~= nil }
+        callback = remembered ~= nil, theme = place and place.theme or nil, stage = stage }
     if #mem.log > 20 then table.remove(mem.log, 1) end
     Log.info("phenomenon fired: " .. kind.id .. " at " .. sq:getX() .. "," .. sq:getY()
-        .. (remembered and " (callback)" or "") .. string.format(" pressure=%.2f", pressure))
+        .. (remembered and " (callback)" or "")
+        .. (place and (" place=" .. tostring(place.theme) .. "/stage" .. stage) or "")
+        .. string.format(" pressure=%.2f", pressure))
 end
 
 Events.EveryTenMinutes.Add(function() Echoes.safe("Director.evaluate", Director.evaluate, false) end)

@@ -57,3 +57,15 @@ Versión de código: Echoes 0.1.0. **Nada se ha ejecutado en el juego.** "Implem
 
 ## Qué sigue sin estar
 Temblor visible de manos o del arma, cojera/tropiezos físicos (hay `setBumpType`, `setSlowFactor`… sin semántica verificada), visión borrosa real. Y la IA visual de zombis (conos, luz, sigilo), que requiere el nivel Java con datos del motor.
+
+---
+
+# 0.5.0 — individuos, lugares encantados y herramientas
+
+- **Personalidad de zombi** (`ZombieUtil.personality`): cada zombi recibe de forma estable *olfato* (0,4–1,6: alcance y disposición a seguir el rastro), *persistencia* (cuántas habitaciones sigue buscando) y *audacia* (disposición a unirse a la persecución de otro). La multitud deja de comportarse como un solo animal.
+- **Sangre en el suelo:** un zombi de buen olfato inactivo puede ir a una casilla cercana con sangre en el suelo (`haveBloodFloor`); cada casilla se "agota" 20 min de juego para no formar bucles con manchas viejas.
+- **Lugares encantados con tema y etapa** (`Places.lua` + Director): al marcarse un lugar (pico de pánico) recibe un *tema* (pasos, puerta, golpes, voz, luz) y una *etapa* 0–4. Volver allí sube la etapa: más volumen, respuestas a los pocos segundos "a un lado" y, en etapas altas, **pasos que caminan hacia ti**. Tras la etapa 4 el fenómeno se calma y se apaga poco a poco.
+- **Nuevo fenómeno de golpes** (`knock`) si el juego tiene un sonido de golpes.
+- **Informe de estado y coste** (`Debug.lua`, F7): todo `Echoes.safe(...)` cuenta llamadas, tiempo medio/máximo y errores por módulo; también cada 6 h con Debug.
+- **Corrección encontrada por pruebas aleatorias:** `math.atan2` no existe en todas las variantes de Lua; ahora se usa `Echoes.atan2`.
+- Hecho notable del Javadoc: el juego **ya aplica** un desvío de 2–10 casillas al oír ruidos que no ve (`HEARING_UNSEEN_OFFSET_*`, mayor con lluvia fuerte) y tiene constantes de visión por oscuridad/niebla/lluvia; el nivel Java *añade* atenuación física, no sustituye eso.

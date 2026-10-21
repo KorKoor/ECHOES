@@ -31,6 +31,18 @@ function ZombieUtil.nearAnyPlayer(z, players, radius)
     return false
 end
 
+-- Each zombie gets stable individual traits the first time we see it, so a crowd does not behave like one animal:
+--   nose    0.4..1.6  how far it smells a trail and how readily it follows it
+--   persist 0..1      how many rooms it keeps searching after losing a sound
+--   bold    0..1      how readily it joins another zombie's pursuit
+function ZombieUtil.personality(z)
+    local md = z:getModData()
+    if not md.echoesP then
+        md.echoesP = { nose = 0.4 + ZombRandFloat(0, 1.2), persist = ZombRandFloat(0, 1), bold = ZombRandFloat(0, 1) }
+    end
+    return md.echoesP
+end
+
 -- Idle = no target, not already walking to a sound, and not busy with another Echoes behaviour.
 function ZombieUtil.isIdle(z, now)
     if z:getTarget() ~= nil then return false end

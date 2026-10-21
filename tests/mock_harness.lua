@@ -6,9 +6,9 @@ Events = setmetatable({}, { __index = function(t, k)
   rawset(t, k, ev); return ev end })
 gh = 24 * 30
 local function fire(k, ...) if k == 'EveryOneMinute' then gh = gh + 1/60 end for _, f in ipairs(handlers[k] or {}) do f(...) end end
-Keyboard = { KEY_F9 = 67, KEY_F8 = 66, KEY_F10 = 68 }
+Keyboard = { KEY_F9 = 67, KEY_F8 = 66, KEY_F10 = 68, KEY_F7 = 65 }
 SandboxVars = { Echoes = { Debug = true, Frequency = 4, DizzinessEnabled = true } }
-math.randomseed(1)
+math.randomseed(tonumber(SEED) or 1)
 function ZombRand(a, b) if b then return math.random(a, b - 1) end return math.random(0, a - 1) end
 function ZombRandFloat(a, b) return a + math.random() * (b - a) end
 function instanceof(o, c) return o.class == c end
@@ -60,7 +60,7 @@ local player = { getX=function() return 100.5 end, getY=function() return 100.5 
   getBodyDamage=function() return { getNumPartsBleeding=function() return 2 end, getOverallBodyHealth=function() return 40 end, getThermoregulator=function() return { getCoreCelcius=function() return 35.5 end } end } end }
 function getPlayer() return player end
 function getCell() return cell end
-function getGameTime() return { getWorldAgeHours = function() return gh end } end
+function getGameTime() return { getWorldAgeHours = function() return gh end, getHour = function() return 6 end } end
 function getClimateManager() return { getNightStrength=function() return 0.9 end, getRainIntensity=function() return 0.5 end,
   getWindIntensity=function() return 0.2 end, getFogIntensity=function() return 0 end } end
 function getWorld() return { getFreeEmitter = function(_, x, y, z) return { playSound = function(_, n) played[#played+1] = n; return 1 end,
@@ -85,7 +85,7 @@ EchoesEngine_stats = function() return "stats" end
 EchoesEngine_occlusion = function() return 0.55 end
 for _, f in ipairs({ "shared/Echoes/Core.lua","shared/Echoes/WorldEvents.lua","client/Echoes/Timer.lua","client/Echoes/Sounds.lua","client/Echoes/Engine.lua","shared/Echoes/ZombieUtil.lua",
   "client/Echoes/Weather.lua","client/Echoes/Acoustics.lua","client/Echoes/Body.lua","client/Echoes/Psyche.lua",
-  "client/Echoes/Phenomena.lua","client/Echoes/Places.lua","client/Echoes/Stories.lua","client/Echoes/Senses.lua","client/Echoes/VehicleSense.lua","client/Echoes/Interaction.lua","client/Echoes/Visual.lua","client/Echoes/Director.lua","client/Echoes/RoomDecay.lua","client/Echoes/Fear.lua","client/Echoes/Dizzy.lua","server/Echoes/ZombieAwareness.lua","server/Echoes/Tracking.lua" }) do
+  "client/Echoes/Phenomena.lua","client/Echoes/Places.lua","client/Echoes/Stories.lua","client/Echoes/Senses.lua","client/Echoes/VehicleSense.lua","client/Echoes/Interaction.lua","client/Echoes/Visual.lua","client/Echoes/Director.lua","client/Echoes/RoomDecay.lua","client/Echoes/Fear.lua","client/Echoes/Dizzy.lua","server/Echoes/ZombieAwareness.lua","server/Echoes/Tracking.lua","client/Echoes/Debug.lua" }) do
   dofile("/home/user/ECHOES/Echoes/common/media/lua/" .. f) end
 fire("OnGameStart")
 fire("EveryOneMinute"); fire("EveryTenMinutes"); fire("EveryHours")
@@ -107,3 +107,9 @@ for i = 1, 6 do Echoes.Director.evaluate(true) end
 for i = 1, 40 do tms = tms + 200; for _, f in ipairs(handlers.OnTick or {}) do f() end end
 print("PLAYED:", table.concat(played, " | "))
 print("pressure", Echoes.Psyche.pressure, "winded", Echoes.Body.state.winded, "tremor", Echoes.Body.state.tremor)
+
+-- haunted places escalate
+local pl = Echoes.Places.mark(player, 1); pl.theme = "door"
+zombie.getX = function() return 300 end
+for i = 1, 60 do gh = gh + 5; Echoes.Director.evaluate(true) end
+fire("OnKeyPressed", 65)

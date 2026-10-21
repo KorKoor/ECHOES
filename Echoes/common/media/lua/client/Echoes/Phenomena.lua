@@ -88,8 +88,8 @@ end
 
 -- Kinds consumed by the Director. `run(player)` returns the source square on success, nil otherwise.
 Phenomena.kinds = {
-    { id = "door_ajar", weight = 0.6, ambiguous = true, run = runDoorAjar },
-    { id = "light_flicker", weight = 0.5, ambiguous = true, run = runFlicker },
+    { id = "door_ajar", weight = 0.6, ambiguous = true, theme = "door", run = runDoorAjar },
+    { id = "light_flicker", weight = 0.5, ambiguous = true, theme = "light", run = runFlicker },
 }
 
 function Phenomena.available()

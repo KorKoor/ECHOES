@@ -74,12 +74,13 @@ end
 -- For a zombie: the nearest still-fresh point within its smelling range, then a point a few steps newer.
 local function followTarget(z, tr, life, now)
     local zx, zy = z:getX(), z:getY()
+    local nose = ZU.personality(z).nose
     local bestI, bestD2
     for i = 1, #tr do
         local pt = tr[i]
         local s, age = strengthNow(pt, life, now)
         if s > 0.12 and age >= MIN_AGE_MIN and math.abs(pt.z - z:getZ()) < 1.0 then
-            local range = 4 + 7 * s
+            local range = (4 + 7 * s) * nose
             local dx, dy = pt.x - zx, pt.y - zy
             local d2 = dx * dx + dy * dy
             if d2 <= range * range and (not bestD2 or d2 < bestD2) then bestI, bestD2 = i, d2 end
@@ -93,6 +94,26 @@ local function followTarget(z, tr, life, now)
     end
     if j == bestI and bestD2 < 4 then return nil end -- already standing on the point
     return tr[j]
+end
+
+-- Fresh-ish blood on the floor draws a keen-nosed idle zombie. Each square is "used up" for 20 game minutes so
+-- zombies do not loop on old stains.
+local bloodUsed = {}
+
+local function bloodSquare(z, wnow)
+    local cell = getCell()
+    local zx, zy, zz = math.floor(z:getX()), math.floor(z:getY()), z:getZ()
+    for _ = 1, 4 do
+        local sq = cell:getGridSquare(zx + ZombRand(-7, 8), zy + ZombRand(-7, 8), zz)
+        if sq and sq:haveBloodFloor() then
+            local key = sq:getX() * 100003 + sq:getY()
+            if not bloodUsed[key] or wnow > bloodUsed[key] then
+                bloodUsed[key] = wnow + 20
+                return sq
+            end
+        end
+    end
+    return nil
 end
 
 local function tick()
@@ -111,13 +132,19 @@ local function tick()
         local z = list:get(i)
         local near, owner = ZU.nearAnyPlayer(z, players, SCAN_RADIUS)
         if near then
-            if scentOn and scentStarted < SCENT_BUDGET and ZU.isIdle(z, now) and ZombRandFloat(0, 1) < 0.5 then
+            if scentOn and scentStarted < SCENT_BUDGET and ZU.isIdle(z, now)
+                and ZombRandFloat(0, 1) < 0.5 * math.min(1, ZU.personality(z).nose) then
                 local tr = trails[ZU.playerKey(owner)]
-                if tr then
-                    local pt = followTarget(z, tr, life, wnow)
-                    if pt then
-                        z:pathToLocationF(pt.x, pt.y, pt.z)
-                        ZU.setBusy(z, now, 4000)
+                local pt = tr and followTarget(z, tr, life, wnow)
+                if pt then
+                    z:pathToLocationF(pt.x, pt.y, pt.z)
+                    ZU.setBusy(z, now, 4000)
+                    scentStarted = scentStarted + 1
+                elseif ZU.personality(z).nose > 0.8 and ZombRandFloat(0, 1) < 0.15 then
+                    local sq = bloodSquare(z, wnow)
+                    if sq then
+                        z:pathToLocationF(sq:getX() + 0.5, sq:getY() + 0.5, sq:getZ())
+                        ZU.setBusy(z, now, 5000)
                         scentStarted = scentStarted + 1
                     end
                 end
@@ -130,7 +157,7 @@ local function tick()
                     if o ~= z then
                         local dx, dy = o:getX() - zx, o:getY() - zy
                         if dx * dx + dy * dy <= PACK_RADIUS * PACK_RADIUS and ZU.isIdle(o, now)
-                            and ZombRandFloat(0, 1) < 0.3 then
+                            and ZombRandFloat(0, 1) < 0.1 + 0.4 * ZU.personality(o).bold then
                             o:pathToLocationF(zx, zy, zz)
                             ZU.setBusy(o, now, 6000)
                             packStarted = packStarted + 1

@@ -20,7 +20,7 @@ local panel
 local MAX_GLARE, MAX_DARK, MAX_FIG_ALPHA = 0.30, 0.22, 0.5
 
 local function facingAngle(player)
-    return math.atan2(player:getForwardDirectionY(), player:getForwardDirectionX())
+    return Echoes.atan2(player:getForwardDirectionY(), player:getForwardDirectionX())
 end
 
 -- Adaptation ------------------------------------------------------------------------------------
@@ -80,7 +80,7 @@ local function figureAlpha(now, fig, player)
     local t = now - fig.start
     if t >= fig.life then return nil end
     -- vanishes as soon as you turn toward it
-    local turned = math.abs(math.atan2(math.sin(facingAngle(player) - fig.angle), math.cos(facingAngle(player) - fig.angle)))
+    local turned = math.abs(Echoes.atan2(math.sin(facingAngle(player) - fig.angle), math.cos(facingAngle(player) - fig.angle)))
     if turned > 0.6 then return nil end
     local fadeIn, fadeOut = 250, 350
     local a = MAX_FIG_ALPHA

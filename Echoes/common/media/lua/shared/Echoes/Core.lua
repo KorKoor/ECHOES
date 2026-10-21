@@ -2,7 +2,7 @@
 -- UNTESTED prototype: APIs marked [V] in docs/02-design.md still need in-game verification.
 
 Echoes = Echoes or {}
-Echoes.VERSION = "0.4.0"
+Echoes.VERSION = "0.5.0"
 
 -- Logging ---------------------------------------------------------------------------------
 Echoes.Log = {}
@@ -63,13 +63,43 @@ function Echoes.Config.isEnabled(module)
 end
 
 -- Safe call helper: a failing phenomenon must never break the game loop.
+Echoes.Perf = { stats = {} }
+
+local function nowMs()
+    local ok, t = pcall(getTimestampMs)
+    return ok and t or 0
+end
+
+-- Every call through safe() is counted and timed (millisecond resolution), so slow modules show up in Perf.report().
 function Echoes.safe(label, fn, ...)
+    local t0 = nowMs()
     local ok, res = pcall(fn, ...)
+    local dt = nowMs() - t0
+    local st = Echoes.Perf.stats[label]
+    if not st then st = { calls = 0, ms = 0, max = 0, errors = 0 }; Echoes.Perf.stats[label] = st end
+    st.calls = st.calls + 1
+    st.ms = st.ms + dt
+    if dt > st.max then st.max = dt end
     if not ok then
+        st.errors = st.errors + 1
         Echoes.Log.error(label .. ": " .. tostring(res))
         return nil
     end
     return res
+end
+
+-- Lines "label calls=.. avgMs=.. maxMs=.. errors=..", slowest total first.
+function Echoes.Perf.report()
+    local rows = {}
+    for label, st in pairs(Echoes.Perf.stats) do rows[#rows + 1] = { label = label, st = st } end
+    table.sort(rows, function(a, b) return a.st.ms > b.st.ms end)
+    local out = {}
+    for _, r in ipairs(rows) do
+        local st = r.st
+        out[#out + 1] = string.format("%-28s calls=%d avgMs=%.2f maxMs=%d errors=%d", r.label, st.calls,
+            st.calls > 0 and st.ms / st.calls or 0, st.max, st.errors)
+    end
+    return out
 end
 
 -- Normalised (0..1) value of a CharacterStat for a character, using the stat's own min/max.
@@ -90,4 +120,10 @@ function Echoes.clamp(v, lo, hi)
     if v < lo then return lo end
     if v > hi then return hi end
     return v
+end
+
+-- atan2 that works whether the Lua flavour has math.atan2 (5.1 / Kahlua) or a two-argument math.atan (5.3+).
+function Echoes.atan2(y, x)
+    if math.atan2 then return math.atan2(y, x) end
+    return math.atan(y, x)
 end

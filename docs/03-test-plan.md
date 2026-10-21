@@ -61,3 +61,9 @@ Con Debug activado.
 - **Miedo:** con 2+ zombis a la vista o de noche en un lugar oscuro con presión alta, debe empezar un latido (`fear 0.xx: heartbeat starts`; si `sounds[heartbeat] = 0 candidates`, enviar el volcado del probe).
 - **Mareo (experimental):** pulsar **F8** con Debug: ¿rota/oscila la pantalla 6 s? Contar qué ves (con y sin Viewpoint) y la sensación (sutil/exagerado). Si funciona, activar `Dizziness` en Sandbox y agotarte corriendo hasta el límite.
 - **Borde oscuro:** con `Visual` activado, el borde de la pantalla late con el corazón.
+
+## Novedades v0.5.0
+- **F7** (Debug): informe de estado + coste por módulo. Enviar este bloque tras 10–20 min de juego: es la mejor medida de rendimiento.
+- **Lugares encantados:** tras un pico de pánico, volver a ese sitio: `phenomenon fired: ... place=<tema>/stage<N>`. Comprobar que sube de etapa y que en etapas altas los pasos se acercan; después se calma.
+- **Zombis con carácter:** observar que unos siguen el rastro desde lejos y otros ni lo notan; unos siguen buscando por varias habitaciones y otros se rinden. Si todos hacen lo mismo, enviar el log.
+- **Sangre:** tras una pelea con sangre en el suelo, algún zombi inactivo cercano debería acercarse a las manchas (`tracking: scent=`).

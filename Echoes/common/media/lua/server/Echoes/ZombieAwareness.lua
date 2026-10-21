@@ -69,7 +69,8 @@ local function tick()
                 and (now - md.echoesHeard) <= LOST_WINDOW_MS
                 and (not md.echoesSearched
                     or ((now - md.echoesSearched) > 8000
-                        and ((md.echoesHops or 0) < MAX_HOPS or (now - md.echoesSearched) > COOLDOWN_MS))) then
+                        and ((md.echoesHops or 0) < 1 + math.floor(Echoes.ZombieUtil.personality(z).persist * MAX_HOPS)
+                            or (now - md.echoesSearched) > COOLDOWN_MS))) then
                 local sq = pickSearchSquare(z)
                 if sq then
                     z:pathToLocationF(sq:getX() + 0.5, sq:getY() + 0.5, sq:getZ())

@@ -15,6 +15,19 @@ local function store(player)
     return md.Echoes.places
 end
 
+local THEMES = { "steps", "door", "knock", "voice", "light" }
+local MAX_STAGE = 4
+
+function Places.escalate(place)
+    if place.stage < MAX_STAGE then
+        place.stage = place.stage + 1
+    else -- the haunting has run its course: it settles and slowly fades
+        place.stage = 2
+        place.w = place.w * 0.5
+    end
+    place.t = getGameTime():getWorldAgeHours()
+end
+
 function Places.mark(player, weight)
     local list = store(player)
     local now = getGameTime():getWorldAgeHours()
@@ -25,7 +38,8 @@ function Places.mark(player, weight)
             return p
         end
     end
-    list[#list + 1] = { x = x, y = y, z = z, w = weight or 1, t = now }
+    list[#list + 1] = { x = x, y = y, z = z, w = weight or 1, t = now, stage = 0,
+        theme = THEMES[1 + ZombRand(#THEMES)] }
     if #list > MAX_PLACES then table.remove(list, 1) end
     return list[#list]
 end
@@ -44,7 +58,7 @@ function Places.pick(player, minAgeHours)
             local sq = getCell():getGridSquare(p.x, p.y, p.z)
             if sq then
                 local w = p.w * (1.0 - age / LIFETIME_HOURS)
-                usable[#usable + 1] = { sq = sq, w = w }
+                usable[#usable + 1] = { sq = sq, w = w, place = p }
                 total = total + w
             end
         end
@@ -53,7 +67,7 @@ function Places.pick(player, minAgeHours)
     local r = ZombRandFloat(0, total)
     for _, u in ipairs(usable) do
         r = r - u.w
-        if r <= 0 then return u.sq end
+        if r <= 0 then return u.sq, u.place end
     end
-    return usable[#usable].sq
+    return usable[#usable].sq, usable[#usable].place
 end
