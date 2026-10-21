@@ -1,0 +1,7 @@
+Sandbox_EN = {
+    Sandbox_Echoes = "ECHOES",
+    Sandbox_Echoes_Enabled = "Enable ECHOES",
+    Sandbox_Echoes_SoundEnabled = "Unexplained sounds",
+    Sandbox_Echoes_Frequency = "Phenomena frequency",
+    Sandbox_Echoes_Debug = "Debug logging",
+}

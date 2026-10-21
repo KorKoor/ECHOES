@@ -1,0 +1,25 @@
+VERSION = 1,
+
+option Echoes.Enabled
+{
+    type = boolean, default = true,
+    page = Echoes, translation = Echoes_Enabled,
+}
+
+option Echoes.SoundEnabled
+{
+    type = boolean, default = true,
+    page = Echoes, translation = Echoes_SoundEnabled,
+}
+
+option Echoes.Frequency
+{
+    type = double, min = 0.1, max = 4.0, default = 1.0,
+    page = Echoes, translation = Echoes_Frequency,
+}
+
+option Echoes.Debug
+{
+    type = boolean, default = false,
+    page = Echoes, translation = Echoes_Debug,
+}
