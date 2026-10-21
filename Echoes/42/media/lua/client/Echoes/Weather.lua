@@ -1,6 +1,8 @@
 -- ECHOES weather (client): derived readings from the game's own climate. No new weather system.
 -- UNTESTED. Uses ClimateManager getters present in the 42.20 Javadoc.
 
+require "Echoes/Core"
+
 local Weather = {}
 Echoes.Weather = Weather
 

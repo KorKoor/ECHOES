@@ -2,6 +2,8 @@
 -- UNTESTED prototype. Sound names are resolved against the game's real sound list (Sounds.lua).
 -- Sound kinds are only played locally by an emitter: they never attract zombies.
 
+require "Echoes/Core"
+
 local Log, Config = Echoes.Log, Echoes.Config
 
 local Director = {}
@@ -30,9 +32,7 @@ Director.kinds = {
 local function nowHours() return getGameTime():getWorldAgeHours() end
 
 local function memory(player)
-    local md = player:getModData()
-    md.Echoes = md.Echoes or { last = -1000, log = {} }
-    return md.Echoes
+    return Echoes.playerData(player)
 end
 
 local function zombiesNear(player, radius)
@@ -250,7 +250,11 @@ function Director.evaluate(force)
         if remembered and kind.needsDoor then -- a door sound needs a door: look near the remembered spot
             remembered = findDoorNear(remembered, 6) or remembered
         end
-        sq = remembered or (kind.needsDoor and findDoorSquare(player) or findWalkableSquare(player, behind))
+        sq = remembered
+        if not sq then
+            if kind.needsDoor then sq = findDoorSquare(player) -- a door sound needs a real door, never a random floor square
+            else sq = findWalkableSquare(player, behind) end
+        end
         if not sq then Log.debug("no source square for " .. kind.id); return end
         if kind.steps then
             if stageFootsteps(kind, sq, player, stage) == 0 then Log.debug("no walkable path"); return end

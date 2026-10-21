@@ -4,6 +4,9 @@
 -- hearing rules decide who reacts, so nobody learns the player's position. Clients only play a faint, directional
 -- sound. UNTESTED: addSound semantics (radius/volume) and OnServerCommand signature are unverified.
 
+require "Echoes/Core"
+require "Echoes/ZombieUtil"
+
 local Log, Config = Echoes.Log, Echoes.Config
 
 local WorldEvents = {}
@@ -13,17 +16,7 @@ local ALARM_RADIUS = 70
 local ALARM_VOLUME = 50
 local HEAR_RANGE = 120
 
-local function players()
-    local out = {}
-    if isServer() then
-        local list = getOnlinePlayers()
-        for i = 0, list:size() - 1 do out[#out + 1] = list:get(i) end
-    else
-        local p = getPlayer()
-        if p then out[1] = p end
-    end
-    return out
-end
+local function players() return Echoes.ZombieUtil.players() end
 
 -- Faint alarm heard from the direction of (x, y). Client side only.
 local function playDistant(x, y)
@@ -81,7 +74,9 @@ local function updateActivityLights(state, ps, night)
     local nowH = getGameTime():getWorldAgeHours()
     for i = #state.lights, 1, -1 do -- turn expired lamps off again (when their square is loaded)
         local l = state.lights[i]
-        if nowH >= l.off then
+        if nowH >= l.off + 24 then
+            table.remove(state.lights, i) -- unloaded for a day past its time: forget it so it cannot block new lights
+        elseif nowH >= l.off then
             local sq = getCell():getGridSquare(l.x, l.y, l.z)
             if sq then
                 local objs = sq:getObjects()

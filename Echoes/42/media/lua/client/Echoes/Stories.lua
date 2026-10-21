@@ -3,6 +3,8 @@
 -- No quests, no text. The player decides whether to investigate. Instances are remembered in ModData.
 -- UNTESTED (IsoDoor.setLocked and sound names unverified).
 
+require "Echoes/Core"
+
 local Log, Config = Echoes.Log, Echoes.Config
 
 local Stories = {}
@@ -29,7 +31,8 @@ function Stories.createLockedIn(player)
             local d = sq:getDoor(true) or sq:getDoor(false)
             local dx, dy = sq:getX() - px, sq:getY() - py
             if d and dx * dx + dy * dy >= 49 and not sq:isCouldSee(pnum)
-                and not d:IsOpen() and not d:isLocked() and not d:isBarricaded() then
+                and not d:IsOpen() and not d:isLocked() and not d:isBarricaded()
+                and Echoes.isInteriorDoor(d) then
                 d:setLocked(true)
                 list[#list + 1] = { kind = "locked_in", x = sq:getX(), y = sq:getY(), z = sq:getZ(), knocks = 0 }
                 Log.info("story created: locked_in at " .. sq:getX() .. "," .. sq:getY())
@@ -41,9 +44,22 @@ function Stories.createLockedIn(player)
 end
 
 -- Occasional knocking when the player is close to an existing story door.
+-- The door of a story, if its square is loaded.
+local function storyDoor(s)
+    local sq = getCell():getGridSquare(s.x, s.y, s.z)
+    if not sq then return nil, false end
+    return sq:getDoor(true) or sq:getDoor(false), true
+end
+
 local function update(player)
     local list = store()
     local px, py = player:getX(), player:getY()
+    for i = #list, 1, -1 do -- drop stories whose door was unlocked/opened/removed, or that have said everything
+        local s = list[i]
+        local door, loaded = storyDoor(s)
+        if loaded and (not door or not door:isLocked() or door:IsOpen()) then table.remove(list, i)
+        elseif s.knocks >= 12 then table.remove(list, i) end
+    end
     for _, s in ipairs(list) do
         if s.kind == "locked_in" and s.knocks < 12 and math.abs(s.z - player:getZ()) < 1 then
             local dx, dy = s.x - px, s.y - py
@@ -66,6 +82,7 @@ Stories.kind = { id = "story_locked_in", weight = 0.25, ambiguous = true, run = 
 
 function Stories.available()
     if isClient() or not Config.isEnabled("Stories") then return {} end
+    if #store() >= MAX_STORIES then return {} end
     return { Stories.kind }
 end
 

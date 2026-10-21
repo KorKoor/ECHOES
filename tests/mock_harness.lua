@@ -5,7 +5,8 @@ Events = setmetatable({}, { __index = function(t, k)
                Remove = function(f) end }
   rawset(t, k, ev); return ev end })
 gh = 24 * 30
-local function fire(k, ...) if k == 'EveryOneMinute' then gh = gh + 1/60 end for _, f in ipairs(handlers[k] or {}) do f(...) end end
+local function fire(k, ...) if k == 'EveryOneMinute' then gh = gh + 1/60; tms = (tms or 0) + 3000 end for _, f in ipairs(handlers[k] or {}) do f(...) end end
+require = function() return true end
 Keyboard = { KEY_F9 = 67, KEY_F8 = 66, KEY_F10 = 68, KEY_F7 = 65 }
 SandboxVars = { Echoes = { Debug = true, Frequency = 4, DizzinessEnabled = true } }
 math.randomseed(tonumber(SEED) or 1)
@@ -20,6 +21,7 @@ local function sq(x, y, z, o) o = o or {}
   function s:isOutside() return o.outside or false end
   function s:isCouldSee() return false end function s:isFree() return true end
   function s:isBlockedTo() return false end
+  function s:haveBloodFloor() return (x + y) % 5 == 0 end
   function s:getDoor(n) return o.door and n and o.door or nil end
   function s:getObjects() return list(self.objs) end
   function s:getRoom() if x % 2 ~= 0 then return nil end
@@ -67,7 +69,7 @@ function getWorld() return { getFreeEmitter = function(_, x, y, z) return { play
   setVolume = function(_, h, v) played[#played+1] = string.format("vol=%.2f", v) end, setPitch = function() end } end,
   isHydroPowerOn = function() return true end } end
 function getActivatedMods() return { contains = function() return false end } end
-local tms = 0
+tms = 0
 function getTimestampMs() return tms end
 GameSounds = { isKnownSound = function(n) return n ~= "FootstepsIndoor" end,
   getCategories = function() return list({ "c" }) end,
@@ -90,7 +92,7 @@ EchoesEngine_stats = function() return "stats" end
 EchoesEngine_occlusion = function() return 0.55 end
 EchoesEngine_msSinceLoud = function() return 5000 end
 EchoesEngine_lastLoudRadius = function() return 80 end
-for _, f in ipairs({ "shared/Echoes/Core.lua","shared/Echoes/WorldEvents.lua","client/Echoes/Timer.lua","client/Echoes/Sounds.lua","client/Echoes/Engine.lua","shared/Echoes/ZombieUtil.lua",
+for _, f in ipairs({ "shared/Echoes/Core.lua","shared/Echoes/WorldEvents.lua","client/Echoes/Timer.lua","client/Echoes/Sounds.lua","shared/Echoes/Engine.lua","shared/Echoes/ZombieUtil.lua",
   "client/Echoes/Weather.lua","client/Echoes/Acoustics.lua","client/Echoes/Body.lua","client/Echoes/Psyche.lua",
   "client/Echoes/Phenomena.lua","client/Echoes/Places.lua","client/Echoes/Stories.lua","client/Echoes/Senses.lua","client/Echoes/VehicleSense.lua","client/Echoes/Interaction.lua","client/Echoes/Visual.lua","client/Echoes/Director.lua","client/Echoes/RoomDecay.lua","client/Echoes/Fear.lua","client/Echoes/Dizzy.lua","server/Echoes/ZombieAwareness.lua","server/Echoes/Tracking.lua","server/Echoes/RadioSignals.lua","client/Echoes/Debug.lua" }) do
   dofile((BASE or ".") .. "/Echoes/42/media/lua/" .. f) end

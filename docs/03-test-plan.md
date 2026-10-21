@@ -1,80 +1,58 @@
-# Plan de pruebas para mañana (nada de esto se ha ejecutado aún)
+# Plan de pruebas (versión actual: Echoes 0.6.0 · EchoesEngine 0.4.0)
 
-## Paso 1 — EchoesProbe
-1. Copiar `EchoesProbe/` a `~/Zomboid/mods/`. Activar en partida de un jugador; entrar en un edificio.
-2. Esperar ~5 s y enviar las líneas `[EchoesProbe]` de `~/Zomboid/console.txt`.
+> Nada de lo siguiente se ha ejecutado aún en el juego. Cada paso dice **qué enviar** (líneas de `~/Zomboid/console.txt`, a partir de aquí `console.txt`). Haz los pasos en orden: cada fase desbloquea a la siguiente.
 
-## Paso 2 — Prototipo Echoes (copiar `Echoes/` a `~/Zomboid/mods/`)
-1. Nueva partida (o una existente) con el mod activo; en Sandbox → página ECHOES activar **Debug logging**.
-2. Buscar `[Echoes] v0.0.2 started` en `console.txt`. Si no aparece: error de carga, enviar el log.
-3. Pulsar **F9** dentro de un edificio de noche: debe oírse un sonido a 6–12 casillas y aparecer `phenomenon fired`. Si sale `no candidate sound could be played`, los nombres de `Director.soundCandidates` no existen: enviar el log.
-4. Esperar 1 h de juego con `Frequency=4`: sin errores `[Echoes][ERROR]`.
-5. Desactivar **Enable ECHOES**: ningún fenómeno, sin errores.
+## 0. Instalación
+1. Copia `Echoes/`, `EchoesProbe/` y (opcional, requiere ZombieBuddy) `EchoesEngine/` a `~/Zomboid/mods/`. Cada carpeta contiene `42/mod.info`.
+2. Para el reconocimiento del motor, lanza ZombieBuddy con `experimental` (Windows `-agentlib:zbNative=experimental --`; Linux/macOS `-javaagent:ZombieBuddy.jar=experimental --`).
+3. Nueva partida de un jugador (o una existente) con esos mods activados. ZombieBuddy pedirá aprobar el JAR de `EchoesEngine`: aceptar.
+4. Sandbox → página **ECHOES** → activar **Debug logging**.
 
-## Paso 3 — Compatibilidad con Viewpoint y shaders
-Repetir el paso 2 con: (a) sin Viewpoint, (b) Viewpoint sin shader pack, (c) con BSL, (d) con Photon. Anotar si el sonido se oye y si hay errores.
+## 1. Probe (lo más importante)
+1. Dentro de un edificio, espera ~5 s: se imprimen líneas `[EchoesProbe]` (OK/FAIL por llamada, volcado de sonidos reales por palabra clave, eventos existentes, estado de Viewpoint/ZombieBuddy).
+2. Espera ~10 s más (o **F10**): líneas `[EchoesInv]` (globals y callbacks de Viewpoint, métodos de cámara en `getCore()`, clases concretas de los emisores de audio).
+3. **Enviar:** todas las líneas `[EchoesProbe]` y `[EchoesInv]`, y el listado de archivos de la carpeta del mod Viewpoint (workshop 3809306528) en tu disco.
 
-## Hipótesis a confirmar
-- Nombres de sonidos vanilla; `emitter:playSound`; `CharacterStat.SANITY` y su rango; `EveryTenMinutes`, `OnKeyPressed`, `Keyboard.KEY_F9`; claves de `sandbox-options.txt` y traducciones B42.
+## 2. Echoes (Lua) — arranque
+- Debe aparecer `[Echoes] v0.6.0 started`. Si no, o hay `[Echoes][ERROR]`, enviar esas líneas.
+- **F7** (Debug): informe de estado y coste por módulo. Enviarlo tras 10–20 min de juego.
 
-## Novedades v0.0.2 a comprobar
-- **Puertas:** el sonido de puerta debe venir de una casilla que realmente tiene una puerta (F9 varias veces; log `phenomenon fired: door`).
-- **Pasos:** 4–7 pasos espaciados ~0,5 s, avanzando por casillas transitables (`footsteps`). Si no suenan, `FootstepsIndoor`/`ZombieFootstep` no existen: enviar log.
-- **Acústica:** detrás de una pared o con puerta cerrada el sonido debe oírse más bajo (`Acoustics.factor`); en otro piso, aún más; con lluvia fuerte en exterior, más bajo.
-- **Eco de lugar:** con varias activaciones (F9) alguna debe marcar `(callback)` y repetirse en un lugar anterior (tras >3 h de juego del anterior).
-- Hipótesis nuevas [V]: `emitter:setVolume(handle, v)`, `setPitch`, `IsoGridSquare:isBlockedTo`, `getDoor(bool)`, `isFree(false)`, `isCouldSee`.
+## 3. Fenómenos y Director
+- **F9** fuerza un fenómeno (dentro de un edificio y sin zombis a <14 casillas). Esperado: `phenomenon fired: <tipo> …`. Tipos: `door`, `knock`, `footsteps`, `voice`, `door_ajar`, `light_flicker`, `story_locked_in`, `apparition`.
+- Si ves `sounds[x] = 0 candidates`, el juego no tiene un sonido con esas palabras: el volcado del probe dice cuáles existen.
+- **Lugares encantados:** tras un pico de pánico, volver cerca: `place=<tema>/stage<N>` sube de etapa; en etapas altas los pasos se acercan; tras la 4ª se calma.
+- Puertas/luces: solo puertas interiores (nunca la puerta de entrada); la puerta entreabierta/lámpara está cerca del lugar encantado y a <30 casillas de ti.
 
-## Novedades v0.1.0 a comprobar (además de lo anterior)
-**Sonidos:** los candidatos ya se filtran con `GameSounds.isKnownSound`; si hay `sound discovery unavailable` en el log, avisar. El probe vuelca palabras clave de sonidos reales (`sounds[breath]`, `sounds[footstep]`, `sounds[alarm]`…): enviar esas líneas para fijar nombres.
-**Cuerpo:** correr hasta agotarte → respiración agitada que se calma al descansar (activar Debug: `breathing:` en el log). Con pánico alto, `Body` reduce un poco el volumen de los sonidos de ECHOES.
-**Psicología:** con Debug aparece `pressure x.xx (...)` cada 10 min de juego; subir con fatiga/estrés/noche/frío.
-**Fenómenos:** F9 repetidamente → `door_ajar` (una puerta cerrada y fuera de vista aparece abierta) y `light_flicker` (lámpara cercana parpadea y vuelve o queda apagada). Solo SP/host.
-**Decaimiento:** en una partida con >10 días (usa Debug de Zomboid para avanzar el tiempo), entrar en habitaciones con lámparas: algunas apagadas, otras parpadean al entrar. Repetir en la misma sala: no debe cambiar más hasta cruzar 25/45 días.
-**Alarma lejana:** con `Frequency=4` esperar horas de juego: `distant alarm started at x,y`, alarma tenue direccional y, a lo largo de las horas, zombis acercándose a esa zona. Si aparece `addSound failed`, enviar el log.
-**Probe:** nuevas líneas (`room light switches`, `hydro power`, `endurance/fatigue ranges`, `running flags`, `thermoregulator core`).
+## 4. Cuerpo, miedo, sordera
+- **Respiración:** correr hasta agotarte → respiración agitada que se calma (`breathing:`).
+- **Miedo:** con 2+ zombis a la vista o presión alta de noche: `fear 0.xx: heartbeat starts`; latido más rápido con más miedo.
+- **Sordera:** disparar un arma sin protección → los sonidos de ECHOES se amortiguan ~30 s; con orejeras no. Requiere EchoesEngine (`loudEvents` en `EchoesEngine_stats()`).
+- **Mareo (experimental):** **F8** = demo de 6 s. ¿Rota o se balancea la pantalla? Cuéntalo (con y sin Viewpoint). Si funciona, activar `Dizziness` en Sandbox.
 
-## Novedades v0.2.0
-Todas con Debug activado (`[Echoes][DEBUG]` en `console.txt`).
-- **Senses:** de noche, con un zombi cerca pero fuera de vista (otra habitación), a veces un sonido tenue desde su posición real (`unseen zombie cue`). Si `sounds[zombieCue] = 0 candidates`, el juego no tiene un sonido de arrastre/rozamiento con esas palabras: enviar el volcado del probe.
-- **Escuchar en la puerta:** clic derecho en una puerta cerrada → "Listen at the door"; caminar, esperar ~3 s; oír a los zombis detrás (log `listen at door: N cue(s)`). Si el menú no aparece o hay error de `ISBaseTimedAction`, enviar el log.
-- **IA:** provocar ruido para atraer zombis y esconderte; al llegar al origen y no encontrar a nadie, algunos deben seguir a otras habitaciones cercanas (`zombie searches started`). Comprobar rendimiento con una horda.
-- **Vehículo:** conducir con un zombi pegado por detrás → un golpe/arañazo tenue (`blind-spot cue`); sonidos de ECHOES más bajos dentro del coche.
-- **Mundo:** de noche, tras varias horas, `activity light at x,y` (una luz lejana encendida que luego se apaga); tiros lejanos tenues; historia `story created: locked_in` y golpes cerca de esa puerta.
-- **Goteras:** con lluvia y >25 días, en algunas salas gotear (`drip in leaky room`).
-- **Lugares cargados:** tras un pico de pánico, fenómenos que regresan allí.
-- **Visual (experimental):** activar Sandbox `Visual` y `Apparitions`; comprobar PRIMERO que el ratón sigue funcionando en menús/inventario. Entrar de un interior oscuro a la calle de día → destello breve; salir a oscuro → oscurecimiento breve; silueta fugaz en el borde (con F9 varias veces).
-- **Probe:** nuevas comprobaciones de UI, zombis, luz, vehículo y eventos.
+## 5. IA de zombis
+- **Búsqueda:** haz un ruido y escóndete; al llegar al origen, algunos zombis siguen a habitaciones cercanas (`zombie searches started`).
+- **Olor/sangre:** herida sangrante o correr, alejarse de un zombi que no te vio y pasar cerca de tu rastro (`tracking: scent=N`). Con lluvia el rastro dura menos. Ajustar `ScentStrength` (0–2) o apagar `Scent`.
+- **Manada:** un zombi que te ve y persigue atrae a vecinos inactivos hacia **él** (`pack=N`).
+- **Carácter individual:** unos siguen el rastro desde lejos y otros ni lo notan; unos buscan más habitaciones que otros. Si todos hacen lo mismo, enviar el log.
+- **Rendimiento:** con una horda, F7 → coste de `Tracking.tick` y `ZombieAwareness.tick` (avgMs/maxMs).
 
-## Reconocimiento del motor (nivel Java) — hacer también mañana
-1. Lanzar el juego con ZombieBuddy en modo `experimental` (ver `docs/05-java-tier.md`).
-2. Con `EchoesProbe` activo, entrar en partida con Viewpoint instalado; esperar ~10 s (o F10).
-3. Enviar todas las líneas `[EchoesInv]` de `console.txt`.
-4. Enviar el listado de archivos de la carpeta del mod Viewpoint (workshop 3809306528) en tu disco.
+## 6. Mundo
+- De noche, tras varias horas: `activity light at x,y`, `distant alarm started` (alarma tenue y direccional; zombis hacia esa zona), disparos lejanos tenues.
+- **Radio del superviviente:** con una radio encendida (pilas o corriente), barrer el dial; tras unas horas debería aparecer una frecuencia con mensajes (`survivor transmission begins`, `survivor radio frequency chosen: N`). Es la parte con más incertidumbre (`SendTransmission`); si no se oye nada, probar con `Frequency=4` y enviar el log.
+- >10 días de juego (puedes avanzar el tiempo con las herramientas de depuración): lámparas apagadas/parpadeando al entrar en habitaciones (`room decay stage`); con lluvia y >25 días, goteras (`drip in leaky room`).
 
-## EchoesEngine (Java) — v0.1.0
-Ver `docs/05-java-tier.md` § "EchoesEngine 0.1.0". Pasar: la línea `[EchoesEngine] ... loaded`, la salida de `EchoesEngine_stats()` (en el probe y tras el experimento de ruido tras muros), cualquier error de ZombieBuddy sobre el parche, y la diferencia observada con `EchoesEngine_set("hearingOcclusion",0/1)`.
+## 7. EchoesEngine (Java) — observar primero
+1. Busca `[EchoesEngine] v0.4.0 loaded` y `[Echoes] engine v0.4.0 …`.
+2. Tras 5–10 min de juego normal: `EchoesEngine_stats()` (consola Lua o F7). **Enviar la línea completa:** llamadas a `getSoundAttract`, `spotted`, `addWorldSoundUnlessInvisible`, radio medio de tu ruido y `loudEvents`.
+3. Oído de zombis: haz ruido dentro de un edificio con 2+ muros; observa cuántos zombis exteriores acuden; repite con `EchoesEngine_set("hearingOcclusion", 0)` y compara.
+4. Opcionales (apagados por defecto): `EngineNoise` (cargado = más ruido) y `EngineStealth` (zombis pueden no verte agachado/en la oscuridad a distancia; mirar `skipped`).
 
-## Novedades v0.4.0
-Con Debug activado.
-- **Olor:** hazte una herida sangrante (o corre mucho), aléjate de un zombi que no te haya visto y pasa cerca de tu rastro. Espera `tracking: scent=N`. Con lluvia el rastro dura menos. Si te parece demasiado fuerte/débil, ajusta `ScentStrength` (0–2) o desactiva `Scent`.
-- **Manada:** deja que un zombi te vea y te persiga; zombis inactivos cercanos a *él* deben ponerse en marcha (`pack=N`).
-- **Miedo:** con 2+ zombis a la vista o de noche en un lugar oscuro con presión alta, debe empezar un latido (`fear 0.xx: heartbeat starts`; si `sounds[heartbeat] = 0 candidates`, enviar el volcado del probe).
-- **Mareo (experimental):** pulsar **F8** con Debug: ¿rota/oscila la pantalla 6 s? Contar qué ves (con y sin Viewpoint) y la sensación (sutil/exagerado). Si funciona, activar `Dizziness` en Sandbox y agotarte corriendo hasta el límite.
-- **Borde oscuro:** con `Visual` activado, el borde de la pantalla late con el corazón.
+## 8. Capa visual (experimental, apagada por defecto)
+- Activar `Visual` y `Apparitions`. **Primero:** comprobar que el ratón sigue funcionando en menús e inventario (el panel transparente no debe bloquear clics).
+- Interior oscuro → calle de día: destello breve; calle → oscuridad: oscurecimiento breve. Con miedo, los bordes laten con el corazón. F9 varias veces: silueta fugaz en el borde.
 
-## Novedades v0.5.0
-- **F7** (Debug): informe de estado + coste por módulo. Enviar este bloque tras 10–20 min de juego: es la mejor medida de rendimiento.
-- **Lugares encantados:** tras un pico de pánico, volver a ese sitio: `phenomenon fired: ... place=<tema>/stage<N>`. Comprobar que sube de etapa y que en etapas altas los pasos se acercan; después se calma.
-- **Zombis con carácter:** observar que unos siguen el rastro desde lejos y otros ni lo notan; unos siguen buscando por varias habitaciones y otros se rinden. Si todos hacen lo mismo, enviar el log.
-- **Sangre:** tras una pelea con sangre en el suelo, algún zombi inactivo cercano debería acercarse a las manchas (`tracking: scent=`).
+## 9. Compatibilidad
+Repetir §3–§5 en estas condiciones y anotar diferencias: (a) sin Viewpoint; (b) con Viewpoint sin shader pack; (c) con BSL; (d) con Photon.
 
-## EchoesEngine 0.3–0.4 (observar primero)
-1. Tras 5–10 min de juego normal, ejecutar `EchoesEngine_stats()` (consola Lua o F7): enviar la línea completa. Dice cuántas veces se llama a `getSoundAttract`, `spotted` y `addWorldSoundUnlessInvisible`, el radio medio de tu ruido y cuántos ruidos fuertes (`loudEvents`) hubo.
-2. **Disparo sin protección:** dispara un arma. Debe aparecer `loudEvents>=1`; el oído de los sonidos de ECHOES baja unos segundos (y zumbido si existe sonido). Con orejeras puestas no debe contar. Enviar el resultado.
-3. **Carga:** con `EngineNoise` activado, correr con la mochila llena frente a correr ligero: el `meanRadius` y los zombis atraídos deberían subir.
-4. **Sigilo (opcional):** `EngineStealth` activado + `EngineStealthStrength` 0,6: agáchate de noche a >6 casillas de un zombi que no te ha visto; mira `skipped` en el contador.
-
-## Novedades v0.6.0
-- **Radio del superviviente:** con una radio encendida (con batería o corriente), barrer el dial; tras unas horas de juego (más probable de noche) debe aparecer una frecuencia con mensajes (`survivor transmission begins` en el log y `survivor radio frequency chosen: N`). Si no se oye nada, probar con `Frequency=4` y enviar el log: es la parte con más incertidumbre (semántica de `SendTransmission`).
-- **Sordera:** disparar sin protección y notar que los sonidos de ECHOES se amortiguan ~30 s (ver también `EchoesEngine_stats()`).
-- **Lugares encantados con puertas/luces:** si un lugar de tema "door" o "light" dispara, la puerta entreabierta o la lámpara que parpadea debe estar cerca de ese lugar (≤14 casillas) y a menos de 30 casillas de ti; si no hay puerta/lámpara allí, ocurre cerca de ti sin avanzar la etapa del lugar.
+## 10. Cómo enviar resultados
+Copia de `console.txt` las líneas que empiezan por `[Echoes`, `[EchoesProbe]`, `[EchoesInv]`, `[EchoesEngine]` y cualquier traza de error de Lua o de ZombieBuddy relacionada. Añade una frase por cada cosa que se sintió mal, falsa o exagerada.

@@ -15,5 +15,8 @@ else
   java -cp "$OUT/stubs:$OUT/classes:$OUT/test" com.echoes.engine.SelfTest
 fi
 mkdir -p ../EchoesEngine/42/media/java
-jar --create --file ../EchoesEngine/42/media/java/EchoesEngine.jar -C "$OUT/classes" .
+# The jar records a hash of the Java sources, so CI can prove the committed jar was built from the committed source.
+SRC_HASH="$(cat $(find src -name '*.java' | LC_ALL=C sort) | sha256sum | cut -d' ' -f1)"
+printf 'Manifest-Version: 1.0\nEchoes-Source-Hash: %s\n' "$SRC_HASH" > "$OUT/MANIFEST.MF"
+jar --create --file ../EchoesEngine/42/media/java/EchoesEngine.jar --manifest "$OUT/MANIFEST.MF" -C "$OUT/classes" .
 echo "built ../EchoesEngine/42/media/java/EchoesEngine.jar"

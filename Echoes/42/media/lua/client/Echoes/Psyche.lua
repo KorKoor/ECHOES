@@ -3,6 +3,8 @@
 -- and it does not label anyone as violent or "insane". All of it can be switched off in the sandbox.
 -- UNTESTED.
 
+require "Echoes/Core"
+
 local Log, Config = Echoes.Log, Echoes.Config
 
 local Psyche = {}
@@ -11,10 +13,7 @@ Echoes.Psyche = Psyche
 Psyche.pressure = 0.0
 
 local function data(player)
-    local md = player:getModData()
-    md.Echoes = md.Echoes or { last = -1000, log = {} }
-    md.Echoes.trauma = md.Echoes.trauma or 0
-    return md.Echoes
+    return Echoes.playerData(player)
 end
 
 function Psyche.trauma(player)

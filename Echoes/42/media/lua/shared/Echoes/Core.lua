@@ -143,3 +143,38 @@ function Echoes.atan2(y, x)
     if math.atan2 then return math.atan2(y, x) end
     return math.atan(y, x)
 end
+
+-- Per-player persistent data (survives save/load): phenomena log, haunted places, trauma. One schema, one place.
+function Echoes.playerData(player)
+    local md = player:getModData()
+    md.Echoes = md.Echoes or {}
+    local d = md.Echoes
+    d.last = d.last or -1000
+    d.log = d.log or {}
+    d.places = d.places or {}
+    d.trauma = d.trauma or 0
+    return d
+end
+
+-- Real-time rate limiter: true at most once per `ms` milliseconds per label. Periodic game events fire much more
+-- often per real second when sleeping or at high game speed; heavy scans use this so their cost stays bounded.
+local lastRun = {}
+function Echoes.throttle(label, ms)
+    local ok, t = pcall(getTimestampMs)
+    if not ok or type(t) ~= "number" then return true end
+    local prev = lastRun[label]
+    if prev and t - prev < ms then return false end
+    lastRun[label] = t
+    return true
+end
+
+-- A door with an indoor square on both sides. Exterior doors (front doors, a safehouse's entrance) are excluded
+-- from anything that opens or locks doors on its own.
+function Echoes.isInteriorDoor(door)
+    local ok, res = pcall(function()
+        local a, b = door:getSquare(), door:getOppositeSquare()
+        if not a or not b then return false end
+        return (not a:isOutside()) and (not b:isOutside())
+    end)
+    return ok and res or false
+end

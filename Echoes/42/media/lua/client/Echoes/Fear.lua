@@ -3,6 +3,8 @@
 -- and short "shocks" from unexplained events. Outputs: a heartbeat that speeds up with fear and a pulse the screen
 -- overlay can use. It does NOT touch PANIC/STRESS or any vanilla stat. UNTESTED.
 
+require "Echoes/Core"
+
 local Log, Config = Echoes.Log, Echoes.Config
 
 local Fear = {}
@@ -39,15 +41,25 @@ local function compute(player)
 end
 
 local function beat()
-    if not Config.isEnabled("Fear") or Fear.level < 0.3 then beating = false; return end
     local player = getPlayer()
-    if player and not player:isDead() then
+    if not Config.isEnabled("Fear") or Fear.level < 0.3 or not player or player:isDead() then
+        beating = false -- also stops the chain when the player dies
+        return
+    end
+    if player then
         local names = Echoes.Sounds.resolve("heartbeat", {}, { "heartbeat", "heart_beat", "heartbeats" }, {})
         Echoes.Sounds.playAt(player:getX(), player:getY(), player:getZ(), names, 0.15 + 0.45 * Fear.level, 0.02)
         Fear.lastBeat = getTimestampMs()
     end
     Echoes.Timer.after(math.floor(1150 - 650 * Fear.level), beat)
 end
+
+Events.OnGameStart.Add(function()
+    Fear.level = 0.0
+    Fear.lastBeat = 0
+    shockValue = 0.0
+    beating = false
+end)
 
 Events.EveryOneMinute.Add(function()
     if not Config.isEnabled("Fear") then Fear.level = 0; return end

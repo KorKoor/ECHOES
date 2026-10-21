@@ -50,7 +50,7 @@ local function zbStatus()
     if not ZombieBuddy then log("ZombieBuddy global not present"); return end
     try("version", function() log("ZombieBuddy " .. tostring(ZombieBuddy.getVersion())) end)
     try("policy", function() log("policy " .. tostring(ZombieBuddy.getPolicy())) end)
-    for _, id in ipairs({ "Viewpoint", "ZombieBuddy", "Echoes" }) do
+    for _, id in ipairs({ "Viewpoint", "ZombieBuddy", "EchoesEngine" }) do
         try("status " .. id, function()
             local s = ZombieBuddy.getJavaModStatus(id)
             if not s then log("javaMod[" .. id .. "] = no JAR considered") return end

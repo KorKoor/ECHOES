@@ -1,3 +1,5 @@
+> **Nota:** este documento se fue ampliando por versiones. La primera tabla y las secciones 0.2–0.5 son históricas; el estado vigente (Echoes 0.6.0 / EchoesEngine 0.4.0) está en las secciones finales y en `README.md`. Cada versión corrige cosas de las anteriores.
+
 # Hoja de ruta de realismo — estado real de los 12 puntos
 
 Versión de código: Echoes 0.1.0. **Nada se ha ejecutado en el juego.** "Implementado" significa: escrito, con sintaxis Lua válida, usando métodos que existen en el Javadoc 42.20.0; no que funcione.

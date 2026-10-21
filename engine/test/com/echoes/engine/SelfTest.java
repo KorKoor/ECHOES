@@ -35,10 +35,9 @@ public class SelfTest {
         @Override public IsoCell getCell() { return cell; }
     }
     static class Zed implements HearingLogic.ZView {
-        final Sq sq; final int id;
-        Zed(Sq sq, int id) { this.sq = sq; this.id = id; }
+        final Sq sq;
+        Zed(Sq sq, int ignoredId) { this.sq = sq; }
         public zombie.iso.IsoGridSquare square() { return sq; }
-        public int id() { return id; }
     }
     static class Climate extends ClimateManager {
         float rain = 0f;
@@ -71,6 +70,12 @@ public class SelfTest {
         float adjWalls = HearingLogic.adjustCore(100f, s, behindWalls);
         check("zombie in the open keeps full attraction (" + adjOpen + ")", Math.abs(adjOpen - 100f) < 1e-3);
         check("zombie behind two walls is less attracted (" + adjWalls + ")", adjWalls < 40f && adjWalls > 5f);
+        // Two zombies with the SAME id (or -1 in single player) at different places must not share a cached factor.
+        Zed sameIdOpen = new Zed(new Sq(w.cell, 3, 1, 0), -1);
+        Zed sameIdWalls = new Zed(new Sq(w.cell, 12, 1, 0), -1);
+        float a1 = HearingLogic.adjustCore(100f, s, sameIdOpen);
+        float a2 = HearingLogic.adjustCore(100f, s, sameIdWalls);
+        check("cache does not mix zombies at different places (" + a1 + " vs " + a2 + ")", a1 > 90f && a2 < 40f);
         check("zero stays zero", HearingLogic.adjustCore(0f, s, behindWalls) == 0f);
         check("bad argument types never throw", HearingLogic.adjust(50f, "x", "y") == 50f);
 
@@ -102,6 +107,12 @@ public class SelfTest {
         check("non-player targets are never concealed", VisionLogic.concealment(v) == 0.0);
         check("shouldSkip is false when stealth is off", !VisionLogic.shouldSkip("z", "o", false));
         check("forced sightings are never skipped", !VisionLogic.shouldSkip("z", "o", true));
+        // A decision holds for DECISION_MS: repeated calls cannot defeat concealment.
+        boolean first = VisionLogic.decide(42, 1.0, 10_000);
+        boolean again = VisionLogic.decide(42, 1.0, 10_000 + 1000);
+        check("vision: p=1 conceals and the decision holds within the window", first && again);
+        VisionLogic.decide(43, 0.0, 10_000);
+        check("vision: p=0 never conceals", !VisionLogic.decide(43, 0.0, 10_001));
         check("spotted calls are counted", Stats.spottedCalls.get() >= 2);
 
         // Player noise maths

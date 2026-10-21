@@ -4,6 +4,8 @@
 -- They change real objects, so they run only in single player or on the host, never on a pure MP client.
 -- Registered into the Director through Phenomena.kinds. UNTESTED (IsoDoor / IsoLightSwitch calls unverified from Lua).
 
+require "Echoes/Core"
+
 local Log = Echoes.Log
 
 local Phenomena = {}
@@ -37,7 +39,8 @@ local function runDoorAjar(player, near)
     local found = eachNearbySquare(player, 80, function(sq)
         local d = sq:getDoor(true) or sq:getDoor(false)
         if d and farEnough(player, sq, 6) and not sq:isCouldSee(pnum)
-            and not d:IsOpen() and not d:isLocked() and not d:isBarricaded() then
+            and not d:IsOpen() and not d:isLocked() and not d:isBarricaded()
+            and Echoes.isInteriorDoor(d) then -- never a front door: it could let zombies into the player's base
             return { sq = sq, door = d }
         end
     end, near)

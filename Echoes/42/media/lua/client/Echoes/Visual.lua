@@ -6,6 +6,8 @@
 -- Fairness: the overlay is uniform (no region hides a threat) and capped at low alpha. The silhouette sits at the
 -- screen edge in screen space, so it never pretends to be a real object in the world. UNTESTED.
 
+require "Echoes/Core"
+
 local Log, Config = Echoes.Log, Echoes.Config
 
 local Visual = {}
@@ -101,7 +103,7 @@ local function createPanel()
     function EchoesOverlay:onMouseMove() return false end
     function EchoesOverlay:prerender() end
 
-    function EchoesOverlay:render()
+    function EchoesOverlay:renderInner()
         local player = getPlayer()
         if not player or not Config.isEnabled("Visual") then return end
         local now = getTimestampMs()
@@ -138,6 +140,23 @@ local function createPanel()
         end
     end
 
+    local renderErrors = 0
+    function EchoesOverlay:render()
+        if renderErrors >= 5 then return end -- gave up: never spam errors every frame
+        local sw, sh = getCore():getScreenWidth(), getCore():getScreenHeight()
+        if self:getWidth() ~= sw or self:getHeight() ~= sh then -- window or resolution changed
+            pcall(function() self:setWidth(sw); self:setHeight(sh) end)
+        end
+        local ok, err = pcall(self.renderInner, self)
+        if not ok then
+            renderErrors = renderErrors + 1
+            if renderErrors == 1 then Log.error("overlay render failed: " .. tostring(err)) end
+            if renderErrors >= 5 then Log.warn("overlay disabled after repeated errors") end
+        else
+            renderErrors = 0
+        end
+    end
+
     local p = EchoesOverlay:new(0, 0, getCore():getScreenWidth(), getCore():getScreenHeight())
     p:initialise()
     p:instantiate()
@@ -156,5 +175,10 @@ function Visual.available()
 end
 
 Events.OnGameStart.Add(function()
+    if panel then -- a previous game's overlay: remove it, the screen state belongs to the old world
+        pcall(function() panel:removeFromUIManager() end)
+        panel = nil
+    end
+    state.glare, state.dark, state.avgLight, state.fig = 0, 0, nil, nil
     if Config.isEnabled("Visual") then Echoes.safe("Visual.createPanel", createPanel) end
 end)

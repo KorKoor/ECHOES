@@ -2,6 +2,8 @@
 -- It does not change what the engine plays; it only decides the volume we ask the emitter for.
 -- UNTESTED. Relies on IsoGridSquare.isBlockedTo / isOutside (present in the 42.20 Javadoc), unverified from Lua.
 
+require "Echoes/Core"
+
 local Acoustics = {}
 Echoes.Acoustics = Acoustics
 

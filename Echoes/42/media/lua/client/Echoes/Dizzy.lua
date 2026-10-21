@@ -5,6 +5,8 @@
 -- Test: press F8 with Debug on for a 6 s demo; see docs/03-test-plan.md. If the screen does not rotate (e.g. under
 -- Viewpoint's own camera) there is nothing to see and nothing is broken. UNTESTED.
 
+require "Echoes/Core"
+
 local Log, Config = Echoes.Log, Echoes.Config
 
 local Dizzy = {}
@@ -12,6 +14,7 @@ Echoes.Dizzy = Dizzy
 
 Dizzy.level = 0.0       -- 0..1, readable by other modules (overlay)
 local active = false
+local disabled = false
 local demoUntil = 0
 
 local function cause(player)
@@ -33,9 +36,12 @@ local function cause(player)
     return d
 end
 
+local tickErrors = 0
+
 local function onTick()
     local player = getPlayer()
     if not player then return end
+    local ok, err = pcall(function()
     local t = getTimestampMs() / 1000
     local scale = Config.get("DizzinessScale")
     local amp = (0.02 + 0.07 * Dizzy.level) * scale
@@ -44,6 +50,19 @@ local function onTick()
     local stats = player:getStats()
     stats:setTripping(true)
     stats:setTrippingRotAngle(angle)
+    end)
+    if not ok then
+        tickErrors = tickErrors + 1
+        if tickErrors == 1 then Log.error("dizziness frame update failed: " .. tostring(err)) end
+        if tickErrors >= 5 then -- the API does not behave as assumed: give up for this session
+            Log.warn("dizziness disabled after repeated errors")
+            Events.OnTick.Remove(onTick)
+            active = false
+            disabled = true
+        end
+    else
+        tickErrors = 0
+    end
 end
 
 local function stop()
@@ -62,7 +81,7 @@ local function update(player)
     local target = cause(player)
     Dizzy.level = Dizzy.level + (target - Dizzy.level) * 0.4
     local demo = demoUntil > getTimestampMs()
-    local wanted = demo or (Config.isEnabled("Dizziness") and Dizzy.level > 0.08)
+    local wanted = not disabled and (demo or (Config.isEnabled("Dizziness") and Dizzy.level > 0.08))
     if demo then Dizzy.level = math.max(Dizzy.level, 1.0) end
     if wanted and not active then
         active = true
@@ -72,6 +91,17 @@ local function update(player)
         stop()
     end
 end
+
+Events.OnGameStart.Add(function()
+    Dizzy.level = 0.0
+    demoUntil = 0
+    tickErrors = 0
+    disabled = false
+    if active then
+        active = false
+        Events.OnTick.Remove(onTick)
+    end
+end)
 
 Events.EveryOneMinute.Add(function()
     local player = getPlayer()

@@ -3,6 +3,8 @@
 --  * `uncertain()` blurs where our own sounds seem to come from at night / under pressure.
 -- Nothing here reveals or hides anything beyond what the world already contains. UNTESTED.
 
+require "Echoes/Core"
+
 local Log, Config = Echoes.Log, Echoes.Config
 
 local Senses = {}
@@ -59,6 +61,7 @@ end
 
 Events.EveryOneMinute.Add(function()
     if not Config.isEnabled("Senses") then return end
+    if not Echoes.throttle("Senses", 1500) then return end
     local player = getPlayer()
     if not player or player:isDead() then return end
     Echoes.safe("Senses.update", update, player)

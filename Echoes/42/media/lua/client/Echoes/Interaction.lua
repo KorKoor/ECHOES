@@ -5,6 +5,8 @@
 -- Peeking around corners / through windows is NOT implemented: no verified lean/camera API (see docs).
 -- Uses vanilla Lua UI classes (ISBaseTimedAction, ISTimedActionQueue, luautils); all guarded. UNTESTED.
 
+require "Echoes/Core"
+
 local Log, Config = Echoes.Log, Echoes.Config
 
 local Interaction = {}

@@ -6,7 +6,12 @@ This checks that the logic runs and does not crash against a fake game; it is NO
 import os
 import sys
 
-from lupa import LuaRuntime
+try:
+    from lupa.lua51 import LuaRuntime  # the game runs a Lua 5.1 dialect (Kahlua)
+    DIALECT = '5.1'
+except ImportError:
+    from lupa import LuaRuntime
+    DIALECT = 'default'
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 SEEDS = range(1, int(sys.argv[1]) + 1) if len(sys.argv) > 1 else range(1, 13)

@@ -1,6 +1,8 @@
--- ECHOES engine bridge (client): talks to the optional Java layer (EchoesEngine, needs ZombieBuddy).
+-- ECHOES engine bridge (shared: client, single player and dedicated server): talks to the optional Java layer (EchoesEngine, needs ZombieBuddy).
 -- When the Java layer is absent every function here is a harmless no-op and the Lua fallbacks are used.
 -- UNTESTED: the EchoesEngine_* globals are exposed by the Java mod at load time.
+
+require "Echoes/Core"
 
 local Log, Config = Echoes.Log, Echoes.Config
 
@@ -46,9 +48,19 @@ function Engine.apply()
 end
 
 Events.OnGameStart.Add(function()
+    present = nil
     if Engine.available() then Echoes.safe("Engine.apply", Engine.apply)
     else Log.info("Java engine not present (optional). Lua fallbacks in use.") end
 end)
+
+-- A dedicated server has no OnGameStart for the world: the Java patches run THERE (getSoundAttract, spotted), so the
+-- settings must be pushed there too.
+if Events.OnServerStarted then
+    Events.OnServerStarted.Add(function()
+        present = nil
+        if Engine.available() then Echoes.safe("Engine.apply(server)", Engine.apply) end
+    end)
+end
 
 Events.EveryHours.Add(function()
     if Engine.available() and Config.get("Debug") then Log.debug("engine stats: " .. tostring(Engine.stats())) end

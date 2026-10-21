@@ -1,6 +1,8 @@
 -- ECHOES debug (client): F7 prints a status report to console.txt (Debug sandbox option must be on).
 -- Everything in one place so a single log line block shows the state of every module and the cost of each.
 
+require "Echoes/Core"
+
 local Config = Echoes.Config
 
 local function report()

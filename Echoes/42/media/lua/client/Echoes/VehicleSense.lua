@@ -3,6 +3,8 @@
 --  * Blind-spot cue: a real zombie close behind/beside the vehicle gives a faint thud/scrape.
 -- Not implemented (no verified API): mirrors, rain on glass, dirt on windows. UNTESTED.
 
+require "Echoes/Core"
+
 local Log, Config = Echoes.Log, Echoes.Config
 
 local VehicleSense = {}
@@ -50,6 +52,7 @@ end
 
 Events.EveryOneMinute.Add(function()
     if not Config.isEnabled("Vehicle") then return end
+    if not Echoes.throttle("VehicleSense", 1500) then return end
     local player = getPlayer()
     if not player or player:isDead() then return end
     Echoes.safe("VehicleSense.update", update, player)

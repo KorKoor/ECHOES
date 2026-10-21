@@ -1,6 +1,8 @@
 -- ECHOES timer (client): run a function after a delay in real milliseconds.
 -- The OnTick handler is registered only while something is pending (no idle per-frame cost).
 
+require "Echoes/Core"
+
 local Timer = {}
 Echoes.Timer = Timer
 

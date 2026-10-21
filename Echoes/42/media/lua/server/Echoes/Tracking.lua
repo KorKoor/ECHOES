@@ -1,14 +1,23 @@
--- ECHOES tracking (server / single player): zombies that follow SCENT and pass ATTENTION to each other.
+-- ECHOES tracking (server / single player): zombies that follow SCENT, smell BLOOD and pass ATTENTION to each other.
 --
--- Scent: the player leaves a trail of past positions. Each point carries a strength that grows with bleeding wounds
--- and exertion, and fades with time, faster in rain and wind. A zombie with no target that comes near a fresh enough
--- trail point walks along the trail toward the newer points. It is NEVER told where the player is now: the newest
--- points (the last ~seconds) are out of reach, so it follows where you went, not where you are.
+-- Scent: each player leaves a trail of past positions. A point's strength grows with bleeding wounds and exertion
+-- and fades with time, much faster in rain and wind. A zombie with no target that comes near a fresh enough point
+-- walks along the trail toward newer points. It is never told where the player IS: points younger than
+-- MIN_AGE_MIN game minutes (about 12 real seconds at the default day length) are out of reach, so it follows where
+-- you went, arriving behind you. A player who stands still does not refresh a point; a new one is laid only every
+-- STILL_REFRESH_MIN minutes and then ages like any other.
 --
--- Pack alert: when a zombie is actively chasing a target it can see, idle zombies near IT drift toward IT (moans),
--- not toward the target.
+-- Blood: a keen-nosed idle zombie may walk to a nearby square with blood on the floor; each square is "used up"
+-- for BLOOD_COOLDOWN_MIN minutes so zombies do not loop on old stains.
 --
--- Budgeted: few zombies per tick, only those near players, one shared `echoesBusy` flag per zombie. UNTESTED.
+-- Pack alert: when a zombie is chasing a target it can see, idle neighbours drift toward THAT ZOMBIE (its moans),
+-- not toward the target. Boldness (per-zombie personality) decides who joins.
+--
+-- Budgeted: few zombies per pass, nearest first, rate-limited in real time, one shared `echoesBusy` flag per
+-- zombie. Memory is pruned. UNTESTED.
+
+require "Echoes/Core"
+require "Echoes/ZombieUtil"
 
 local Log, Config = Echoes.Log, Echoes.Config
 local ZU = Echoes.ZombieUtil
@@ -17,15 +26,20 @@ local Tracking = {}
 Echoes.Tracking = Tracking
 
 local TRAIL_MAX = 120
-local MIN_AGE_MIN = 1.0       -- game minutes: the newest points are out of reach (never reveals the current position)
-local BASE_LIFE_MIN = 25      -- game minutes a scent point lasts in still, dry air
+local MIN_AGE_MIN = 5.0          -- game minutes: newer trail points are out of reach
+local STILL_REFRESH_MIN = 10.0   -- a standing player lays a new point only this often
+local BASE_LIFE_MIN = 25         -- game minutes a scent point lasts in still, dry air
+local TRAIL_FORGET_MIN = 90      -- a trail whose newest point is older than this is dropped
+local BLOOD_COOLDOWN_MIN = 20
 local SCAN_RADIUS = 32
-local MAX_SCAN = 120
+local MAX_CANDIDATES = 120
 local SCENT_BUDGET = 5
 local PACK_BUDGET = 4
 local PACK_RADIUS = 12
+local MIN_INTERVAL_MS = 1500     -- real-time rate limit
 
-local trails = {}   -- player key -> array of points {x,y,z,t,s}
+local trails = {}      -- player key -> array of points {x,y,z,t,s}
+local bloodUsed = {}   -- "x,y,z" -> game minute until which the stain is ignored
 
 local function nowMin() return getGameTime():getWorldAgeHours() * 60 end
 
@@ -42,7 +56,7 @@ local function laidStrength(p)
     return Echoes.clamp(s, 0, 1)
 end
 
-local function record(p)
+local function record(p, wnow)
     local key = ZU.playerKey(p)
     local tr = trails[key]
     if not tr then tr = {}; trails[key] = tr end
@@ -50,14 +64,28 @@ local function record(p)
     local last = tr[#tr]
     local s = laidStrength(p)
     if last and (x - last.x) ^ 2 + (y - last.y) ^ 2 < 1.0 and last.z == z then
-        last.t = nowMin(); last.s = math.max(last.s, s) -- standing still keeps one fresh point
-        return
+        if wnow - last.t < STILL_REFRESH_MIN then
+            last.s = math.max(last.s, s) -- same spot: keep the old point, never make it look fresh
+            return
+        end
     end
-    tr[#tr + 1] = { x = x, y = y, z = z, t = nowMin(), s = s }
+    tr[#tr + 1] = { x = x, y = y, z = z, t = wnow, s = s }
     if #tr > TRAIL_MAX then table.remove(tr, 1) end
 end
 
--- Remaining strength of a point, 0 when gone. Rain and wind wash scent away.
+-- Forget trails of players that left, and expired blood stains.
+local function prune(wnow)
+    for key, tr in pairs(trails) do
+        local newest = tr[#tr]
+        if not newest or wnow - newest.t > TRAIL_FORGET_MIN then trails[key] = nil end
+    end
+    local n = 0
+    for k, until_ in pairs(bloodUsed) do
+        if wnow > until_ then bloodUsed[k] = nil else n = n + 1 end
+    end
+end
+
+-- Remaining lifetime of a point in game minutes (rain and wind wash scent away).
 local function lifeMinutes()
     local c = getClimateManager()
     local rain, wind = 0, 0
@@ -65,40 +93,33 @@ local function lifeMinutes()
     return math.max(4, BASE_LIFE_MIN * (1 - 0.7 * rain) * (1 - 0.3 * wind))
 end
 
-local function strengthNow(pt, life, now)
-    local age = now - pt.t
-    if age < 0 then return 0, age end
-    return pt.s * math.max(0, 1 - age / life) * Config.get("ScentStrength"), age
-end
-
 -- For a zombie: the nearest still-fresh point within its smelling range, then a point a few steps newer.
-local function followTarget(z, tr, life, now)
-    local zx, zy = z:getX(), z:getY()
+local function followTarget(z, tr, life, wnow, mult)
+    local zx, zy, zz = z:getX(), z:getY(), z:getZ()
     local nose = ZU.personality(z).nose
     local bestI, bestD2
     for i = 1, #tr do
         local pt = tr[i]
-        local s, age = strengthNow(pt, life, now)
-        if s > 0.12 and age >= MIN_AGE_MIN and math.abs(pt.z - z:getZ()) < 1.0 then
-            local range = (4 + 7 * s) * nose
-            local dx, dy = pt.x - zx, pt.y - zy
-            local d2 = dx * dx + dy * dy
-            if d2 <= range * range and (not bestD2 or d2 < bestD2) then bestI, bestD2 = i, d2 end
+        local age = wnow - pt.t
+        if age >= MIN_AGE_MIN and math.abs(pt.z - zz) < 1.0 then
+            local s = pt.s * math.max(0, 1 - age / life) * mult
+            if s > 0.12 then
+                local range = (4 + 7 * s) * nose
+                local dx, dy = pt.x - zx, pt.y - zy
+                local d2 = dx * dx + dy * dy
+                if d2 <= range * range and (not bestD2 or d2 < bestD2) then bestI, bestD2 = i, d2 end
+            end
         end
     end
     if not bestI then return nil end
     -- head toward newer points, but never to one younger than MIN_AGE_MIN
     local j = bestI
     for k = bestI + 1, math.min(#tr, bestI + 3) do
-        if now - tr[k].t >= MIN_AGE_MIN then j = k else break end
+        if wnow - tr[k].t >= MIN_AGE_MIN then j = k else break end
     end
     if j == bestI and bestD2 < 4 then return nil end -- already standing on the point
     return tr[j]
 end
-
--- Fresh-ish blood on the floor draws a keen-nosed idle zombie. Each square is "used up" for 20 game minutes so
--- zombies do not loop on old stains.
-local bloodUsed = {}
 
 local function bloodSquare(z, wnow)
     local cell = getCell()
@@ -106,9 +127,9 @@ local function bloodSquare(z, wnow)
     for _ = 1, 4 do
         local sq = cell:getGridSquare(zx + ZombRand(-7, 8), zy + ZombRand(-7, 8), zz)
         if sq and sq:haveBloodFloor() then
-            local key = sq:getX() * 100003 + sq:getY()
+            local key = sq:getX() .. "," .. sq:getY() .. "," .. sq:getZ()
             if not bloodUsed[key] or wnow > bloodUsed[key] then
-                bloodUsed[key] = wnow + 20
+                bloodUsed[key] = wnow + BLOOD_COOLDOWN_MIN
                 return sq
             end
         end
@@ -122,46 +143,41 @@ local function tick()
     local now = getTimestampMs()
     local wnow = nowMin()
     local life = lifeMinutes()
-    local list = getCell():getZombieList()
-    local n = math.min(list:size(), MAX_SCAN)
+    local mult = Config.get("ScentStrength")
+    local scentOn, packOn = Config.isEnabled("Scent"), Config.isEnabled("PackAlert")
+    local zombies = ZU.nearbyZombies(players, SCAN_RADIUS, MAX_CANDIDATES)
     local scentStarted, packStarted = 0, 0
-    local scentOn = Config.isEnabled("Scent")
-    local packOn = Config.isEnabled("PackAlert")
 
-    for i = 0, n - 1 do
-        local z = list:get(i)
-        local near, owner = ZU.nearAnyPlayer(z, players, SCAN_RADIUS)
-        if near then
-            if scentOn and scentStarted < SCENT_BUDGET and ZU.isIdle(z, now)
-                and ZombRandFloat(0, 1) < 0.5 * math.min(1, ZU.personality(z).nose) then
-                local tr = trails[ZU.playerKey(owner)]
-                local pt = tr and followTarget(z, tr, life, wnow)
-                if pt then
-                    z:pathToLocationF(pt.x, pt.y, pt.z)
-                    ZU.setBusy(z, now, 4000)
+    for _, z in ipairs(zombies) do
+        if scentOn and scentStarted < SCENT_BUDGET and ZU.isIdle(z, now)
+            and ZombRandFloat(0, 1) < 0.5 * math.min(1, ZU.personality(z).nose) then
+            local owner = ZU.nearestPlayer(z, players, SCAN_RADIUS)
+            local tr = owner and trails[ZU.playerKey(owner)]
+            local pt = tr and followTarget(z, tr, life, wnow, mult)
+            if pt then
+                z:pathToLocationF(pt.x, pt.y, pt.z)
+                ZU.setBusy(z, now, 4000)
+                scentStarted = scentStarted + 1
+            elseif ZU.personality(z).nose > 0.8 and ZombRandFloat(0, 1) < 0.15 then
+                local sq = bloodSquare(z, wnow)
+                if sq then
+                    z:pathToLocationF(sq:getX() + 0.5, sq:getY() + 0.5, sq:getZ())
+                    ZU.setBusy(z, now, 5000)
                     scentStarted = scentStarted + 1
-                elseif ZU.personality(z).nose > 0.8 and ZombRandFloat(0, 1) < 0.15 then
-                    local sq = bloodSquare(z, wnow)
-                    if sq then
-                        z:pathToLocationF(sq:getX() + 0.5, sq:getY() + 0.5, sq:getZ())
-                        ZU.setBusy(z, now, 5000)
-                        scentStarted = scentStarted + 1
-                    end
                 end
-            elseif packOn and packStarted < PACK_BUDGET and z:getTarget() ~= nil and z:isTargetVisible() then
-                -- idle neighbours drift toward THIS zombie
-                local zx, zy, zz = z:getX(), z:getY(), z:getZ()
-                for k = 0, n - 1 do
-                    if packStarted >= PACK_BUDGET then break end
-                    local o = list:get(k)
-                    if o ~= z then
-                        local dx, dy = o:getX() - zx, o:getY() - zy
-                        if dx * dx + dy * dy <= PACK_RADIUS * PACK_RADIUS and ZU.isIdle(o, now)
-                            and ZombRandFloat(0, 1) < 0.1 + 0.4 * ZU.personality(o).bold then
-                            o:pathToLocationF(zx, zy, zz)
-                            ZU.setBusy(o, now, 6000)
-                            packStarted = packStarted + 1
-                        end
+            end
+        elseif packOn and packStarted < PACK_BUDGET and z:getTarget() ~= nil and z:isTargetVisible() then
+            -- idle neighbours drift toward THIS zombie
+            local zx, zy, zz = z:getX(), z:getY(), z:getZ()
+            for _, o in ipairs(zombies) do
+                if packStarted >= PACK_BUDGET then break end
+                if o ~= z then
+                    local dx, dy = o:getX() - zx, o:getY() - zy
+                    if dx * dx + dy * dy <= PACK_RADIUS * PACK_RADIUS and ZU.isIdle(o, now)
+                        and ZombRandFloat(0, 1) < 0.1 + 0.4 * ZU.personality(o).bold then
+                        o:pathToLocationF(zx, zy, zz)
+                        ZU.setBusy(o, now, 6000)
+                        packStarted = packStarted + 1
                     end
                 end
             end
@@ -174,8 +190,14 @@ end
 
 Events.EveryOneMinute.Add(function()
     if isClient() or not Config.isEnabled("AI") then return end
+    local wnow = nowMin()
     for _, p in ipairs(ZU.players()) do
-        if not p:isDead() then Echoes.safe("Tracking.record", record, p) end
+        if not p:isDead() then Echoes.safe("Tracking.record", record, p, wnow) end
     end
+    if not Echoes.throttle("Tracking", MIN_INTERVAL_MS) then return end
     Echoes.safe("Tracking.tick", tick)
+end)
+
+Events.EveryTenMinutes.Add(function()
+    if not isClient() then Echoes.safe("Tracking.prune", prune, nowMin()) end
 end)

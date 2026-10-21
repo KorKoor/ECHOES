@@ -2,6 +2,8 @@
 -- Several behaviours (search, scent, pack alert) share one `echoesBusy` timestamp in the zombie's ModData so they
 -- never fight over the same zombie.
 
+require "Echoes/Core"
+
 local ZombieUtil = {}
 Echoes.ZombieUtil = ZombieUtil
 
@@ -23,12 +25,32 @@ function ZombieUtil.playerKey(p)
     return "n" .. tostring(p:getPlayerNum())
 end
 
-function ZombieUtil.nearAnyPlayer(z, players, radius)
+-- The nearest player within `radius` of the zombie (and the squared distance), or nil.
+function ZombieUtil.nearestPlayer(z, players, radius)
+    local best, bestD2
     for _, p in ipairs(players) do
         local dx, dy = z:getX() - p:getX(), z:getY() - p:getY()
-        if dx * dx + dy * dy <= radius * radius then return true, p end
+        local d2 = dx * dx + dy * dy
+        if d2 <= radius * radius and (not bestD2 or d2 < bestD2) then best, bestD2 = p, d2 end
     end
-    return false
+    return best, bestD2
+end
+
+-- Zombies within `radius` of any player, nearest first, at most `limit`. Walks the whole zombie list (cheap: two
+-- subtractions per zombie) so far-away zombies at the front of the list can never starve the ones next to a player.
+-- Returns an array of zombies; the owner of each (nearest player) is available through ZombieUtil.nearestPlayer.
+function ZombieUtil.nearbyZombies(players, radius, limit)
+    local list = getCell():getZombieList()
+    local found = {}
+    for i = 0, list:size() - 1 do
+        local z = list:get(i)
+        local p, d2 = ZombieUtil.nearestPlayer(z, players, radius)
+        if p then found[#found + 1] = { z = z, d2 = d2 } end
+    end
+    table.sort(found, function(a, b) return a.d2 < b.d2 end)
+    local out = {}
+    for i = 1, math.min(#found, limit) do out[i] = found[i].z end
+    return out
 end
 
 -- Each zombie gets stable individual traits the first time we see it, so a crowd does not behave like one animal:

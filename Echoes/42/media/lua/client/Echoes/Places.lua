@@ -2,6 +2,8 @@
 -- A place is marked when the player goes through a panic spike. Marks fade over days and stay in player ModData.
 -- UNTESTED.
 
+require "Echoes/Core"
+
 local Places = {}
 Echoes.Places = Places
 
@@ -10,10 +12,7 @@ local MAX_PICK_DIST = 30 -- tiles: only places the player could perceive are cho
 local LIFETIME_HOURS = 24 * 10
 
 local function store(player)
-    local md = player:getModData()
-    md.Echoes = md.Echoes or { last = -1000, log = {} }
-    md.Echoes.places = md.Echoes.places or {}
-    return md.Echoes.places
+    return Echoes.playerData(player).places
 end
 
 local THEMES = { "steps", "door", "knock", "voice", "light" }

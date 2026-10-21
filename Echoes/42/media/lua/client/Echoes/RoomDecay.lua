@@ -4,6 +4,8 @@
 -- some lamps are found off, some flicker when you enter. Players can still switch lamps on when there is power.
 -- Not applied on multiplayer clients (world changes must be server-authoritative). UNTESTED.
 
+require "Echoes/Core"
+
 local Log, Config = Echoes.Log, Echoes.Config
 
 local RoomDecay = {}
@@ -79,7 +81,6 @@ local function update(player)
     local sq = player:getCurrentSquare()
     local room = sq and sq:getRoom()
     if not room then lastRoomId = nil; return end
-    if not getWorld():isHydroPowerOn() or not room:hasLightSwitches() then return end
 
     local id = room:getRoomDef():getID()
     local roomChanged = (id ~= lastRoomId)
@@ -87,12 +88,13 @@ local function update(player)
 
     local days = getGameTime():getWorldAgeHours() / 24
     local stage = stageFor(days)
+    maybeDrip(player, room, stage) -- leaks do not need electricity or lamps
+
+    if not getWorld():isHydroPowerOn() or not room:hasLightSwitches() then return end
     local store = ModData.getOrCreate("EchoesRooms")
     local key = tostring(id)
     local rec = store[key]
     if not rec then rec = { stage = -1 }; store[key] = rec end
-
-    maybeDrip(player, room, stage)
 
     if rec.stage < stage then
         applyToRoom(room, rec, stage)
@@ -100,6 +102,9 @@ local function update(player)
         flickerOnEntry(room)
     end
 end
+
+-- A new game/save must not inherit "last room" from the previous one.
+Events.OnGameStart.Add(function() lastRoomId = nil end)
 
 Events.EveryOneMinute.Add(function()
     if isClient() or not Config.isEnabled("Decay") then return end

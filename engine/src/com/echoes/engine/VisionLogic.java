@@ -40,6 +40,25 @@ public final class VisionLogic {
         return Math.max(0, Math.min(0.9, c * range));
     }
 
+    /** Per-zombie decision kept for DECISION_MS, so concealment is not defeated by calling spotted() many times. */
+    static final int DECISION_MS = 1500;
+    private static final java.util.concurrent.ConcurrentHashMap<Integer, long[]> decisions =
+            new java.util.concurrent.ConcurrentHashMap<>();
+
+    /** True = ignore this sighting. long[]{expiresAtMs, skip(0/1)}. */
+    static boolean decide(int zombieKey, double concealmentProbability, long nowMs) {
+        if (concealmentProbability <= 0) { decisions.remove(zombieKey); return false; }
+        long[] d = decisions.get(zombieKey);
+        if (d == null || d[0] <= nowMs) {
+            boolean skip = ThreadLocalRandom.current().nextDouble() < concealmentProbability;
+            if (decisions.size() > 2048) decisions.clear();
+            d = new long[] { nowMs + DECISION_MS, skip ? 1 : 0 };
+            decisions.put(zombieKey, d);
+        }
+        if (d[1] == 1) Stats.spottedSkipped.incrementAndGet();
+        return d[1] == 1;
+    }
+
     public static boolean shouldSkip(Object zombieObj, Object otherObj, boolean forced) {
         try {
             Stats.spottedCalls.incrementAndGet();
@@ -63,11 +82,7 @@ public final class VisionLogic {
                 public boolean zombieFacing() { return z.isFacingTarget(); }
             };
             double c = concealment(v) * Options.stealthStrength;
-            if (c > 0 && ThreadLocalRandom.current().nextDouble() < c) {
-                Stats.spottedSkipped.incrementAndGet();
-                return true;
-            }
-            return false;
+            return decide(System.identityHashCode(z), c, System.currentTimeMillis());
         } catch (Throwable t) {
             Stats.errors.incrementAndGet();
             return false;

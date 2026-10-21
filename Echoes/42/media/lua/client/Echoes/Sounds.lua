@@ -1,11 +1,15 @@
 -- ECHOES sounds (client): resolve sound names against the sounds the game really has.
 -- Uses GameSounds.isKnownSound / getCategories / getSoundsInCategory (present in the 42.20 Javadoc,
--- unverified from Lua). If those calls fail, static candidates are used unfiltered.
+-- unverified from Lua). If those calls fail, static candidates are used unfiltered and discovery is retried later.
+
+require "Echoes/Core"
 
 local Sounds = {}
 Echoes.Sounds = Sounds
 
 local knownCache, allNames, resolved = {}, nil, {}
+local discoveryFailedAt = nil
+local RETRY_MS = 60000
 
 -- true / false, or nil when the check itself is unavailable.
 function Sounds.known(name)
@@ -16,20 +20,30 @@ function Sounds.known(name)
     return knownCache[name]
 end
 
+-- Loads every sound name once. A failure is not cached: it is retried after RETRY_MS (the sound list may simply
+-- not have been ready yet), and in the meantime callers get an empty list.
 local function loadAll()
     if allNames then return allNames end
-    allNames = {}
+    local okT, now = pcall(getTimestampMs)
+    now = okT and now or 0
+    if discoveryFailedAt and now - discoveryFailedAt < RETRY_MS then return {} end
+    local names = {}
     local ok, err = pcall(function()
         local cats = GameSounds.getCategories()
         for i = 0, cats:size() - 1 do
             local list = GameSounds.getSoundsInCategory(cats:get(i))
             for j = 0, list:size() - 1 do
-                allNames[#allNames + 1] = list:get(j):getName()
+                names[#names + 1] = list:get(j):getName()
             end
         end
     end)
-    if not ok then Echoes.Log.warn("sound discovery unavailable: " .. tostring(err)) end
-    Echoes.Log.debug("sound names discovered: " .. #allNames)
+    if not ok or #names == 0 then
+        discoveryFailedAt = now
+        Echoes.Log.warn("sound discovery unavailable (retry in 60 s): " .. tostring(err))
+        return {}
+    end
+    allNames = names
+    Echoes.Log.debug("sound names discovered: " .. #names)
     return allNames
 end
 
@@ -53,36 +67,44 @@ function Sounds.discover(patterns, exclude)
 end
 
 -- Static candidates that the game does not reject; falls back to discovery by pattern.
--- Result is cached per key. May be empty: callers must handle that.
+-- The result is cached under a key made from ALL inputs (two callers with different excludes never share it),
+-- except an empty result obtained while discovery was unavailable, which is recomputed later.
 function Sounds.resolve(key, static, patterns, exclude)
-    if resolved[key] then return resolved[key] end
+    local cacheKey = key .. "|" .. table.concat(static or {}, ",") .. "|" .. table.concat(patterns or {}, ",")
+        .. "|" .. table.concat(exclude or {}, ",")
+    if resolved[cacheKey] then return resolved[cacheKey] end
     local out = {}
     for _, n in ipairs(static or {}) do
         if Sounds.known(n) ~= false then out[#out + 1] = n end
     end
     if #out == 0 and patterns then out = Sounds.discover(patterns, exclude) end
-    resolved[key] = out
+    if #out > 0 or allNames then resolved[cacheKey] = out end
     Echoes.Log.debug("sounds[" .. key .. "] = " .. #out .. " candidates")
     return out
 end
 
--- Plays one of `names` (random) at a world position. Returns the name played, or nil.
+-- Plays one of `names` (random order, up to 3 tries) at a world position. Returns the name that actually played, or
+-- nil. A handle of 0 from the emitter means "nothing started" and counts as a failure.
 function Sounds.playAt(x, y, z, names, volume, pitchJitter, uncertain)
     if not names or #names == 0 then return nil end
     if uncertain and Echoes.Senses then x, y, z = Echoes.Senses.uncertain(x, y, z) end
     local em = getWorld():getFreeEmitter(x, y, z)
     if not em then return nil end
-    local name = names[1 + ZombRand(#names)]
-    local ok, handle = pcall(function() return em:playSound(name) end)
-    if not ok then
-        Echoes.Log.debug("playSound failed for " .. tostring(name))
-        return nil
-    end
-    if handle and handle ~= 0 then
-        pcall(function() em:setVolume(handle, Echoes.clamp(volume or 1.0, 0, 1)) end)
-        if pitchJitter then
-            pcall(function() em:setPitch(handle, 1.0 - pitchJitter + ZombRandFloat(0, 2 * pitchJitter)) end)
+    local tries = math.min(3, #names)
+    local start = ZombRand(#names)
+    for i = 0, tries - 1 do
+        local name = names[1 + (start + i) % #names]
+        local ok, handle = pcall(function() return em:playSound(name) end)
+        if ok and not (type(handle) == "number" and handle == 0) then
+            if type(handle) == "number" then
+                pcall(function() em:setVolume(handle, Echoes.clamp(volume or 1.0, 0, 1)) end)
+                if pitchJitter then
+                    pcall(function() em:setPitch(handle, 1.0 - pitchJitter + ZombRandFloat(0, 2 * pitchJitter)) end)
+                end
+            end
+            return name
         end
+        Echoes.Log.debug("sound did not play: " .. tostring(name))
     end
-    return name
+    return nil
 end

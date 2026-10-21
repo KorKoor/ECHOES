@@ -2,6 +2,8 @@
 -- No HUD, no new bars. UNTESTED: stat ranges and sound names are unverified.
 -- Limits: Lua cannot shake the camera or hands; those effects need Viewpoint/Java and are not faked here.
 
+require "Echoes/Core"
+
 local Log, Config = Echoes.Log, Echoes.Config
 
 local Body = {}
@@ -68,6 +70,11 @@ local function update(player)
         if played then Log.debug("breathing: " .. played .. " vol " .. string.format("%.2f", vol)) end
     end
 end
+
+Events.OnGameStart.Add(function()
+    lastRunHours = -1000
+    Body.state = { winded = false, tremor = 0, cold = false, hearing = 1.0, recovery = 0, deaf = 0 }
+end)
 
 Events.EveryOneMinute.Add(function()
     if not Config.isEnabled("Body") then return end

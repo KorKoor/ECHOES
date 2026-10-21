@@ -4,6 +4,9 @@
 -- the game's own radio system (ZomboidRadio.SendTransmission); nothing is spawned, no map markers are added.
 -- UNTESTED: SendTransmission semantics (source range, `codes`, signal strength scale) are unverified.
 
+require "Echoes/Core"
+require "Echoes/ZombieUtil"
+
 local Log, Config = Echoes.Log, Echoes.Config
 
 local RadioSignals = {}
@@ -38,12 +41,10 @@ local function interference()
     return Echoes.clamp(0.5 * rain + 0.2 * wind + 0.1 * fog, 0, 1)
 end
 
-local function send(st, p, text)
+-- The survivors stay put during one broadcast: all repeats of a message come from the same place.
+local function send(st, text)
     local radio = getZomboidRadio()
-    local ang = ZombRand(360) * math.pi / 180
-    local dist = SOURCE_MIN + ZombRand(SOURCE_MAX - SOURCE_MIN + 1)
-    local sx = math.floor(p:getX() + math.cos(ang) * dist)
-    local sy = math.floor(p:getY() + math.sin(ang) * dist)
+    local sx, sy = st.sx, st.sy
     local noise = interference()
     if noise > 0.05 then
         local ok, scrambled = pcall(function() return radio:scrambleString(text, math.floor(10 + 60 * noise), true, nil) end)
@@ -52,6 +53,7 @@ local function send(st, p, text)
     local strength = math.floor(80 - 40 * noise)
     -- (sourceX, sourceY, channel, msg, guid, codes, r, g, b, signalStrength, isTV)
     radio:SendTransmission(sx, sy, frequency(st), text, "echoes-survivor", "", 0.85, 0.85, 0.55, strength, false)
+    return true
 end
 
 -- One message is sent per game minute while a broadcast is pending (REPEATS minutes in a row).
@@ -59,12 +61,20 @@ local function minuteTick()
     if isClient() or not Config.isEnabled("Radio") then return end
     local st = state()
     if not st.pending or st.pending <= 0 or not st.current then return end
-    local ps = players()
-    if #ps == 0 then return end
     local text = getText("IGUI_Echoes_Radio_" .. tostring(st.current))
-    Echoes.safe("RadioSignals.send", send, st, ps[1 + ZombRand(#ps)], text)
-    st.pending = st.pending - 1
-    if st.pending == 0 then Log.debug("survivor transmission finished (message " .. st.current .. ")") end
+    if Echoes.safe("RadioSignals.send", send, st, text) then
+        st.fails = 0
+        st.pending = st.pending - 1
+        if st.pending == 0 then Log.debug("survivor transmission finished (message " .. st.current .. ")") end
+    else
+        st.fails = (st.fails or 0) + 1
+        if st.fails >= 3 then -- the radio API does not behave as assumed: do not lose this message, try again later
+            Log.warn("survivor transmission failed 3 times; message " .. st.current .. " will be retried")
+            st.line = st.current
+            st.pending = 0
+            st.fails = 0
+        end
+    end
 end
 
 local function hourly()
@@ -73,10 +83,16 @@ local function hourly()
     st.line = st.line or 1                                        -- next message to broadcast
     if st.pending and st.pending > 0 then return end
     if st.line > STORY_LINES then return end                     -- the story is over: silence
-    if #players() == 0 then return end
+    local ps = players()
+    if #ps == 0 then return end
     local night = getClimateManager():getNightStrength() > 0.5
     local chance = 0.04 * Config.get("Frequency") * (night and 1.8 or 1.0)
     if ZombRandFloat(0, 1) > chance then return end
+    local p = ps[1 + ZombRand(#ps)]
+    local ang = ZombRand(360) * math.pi / 180
+    local dist = SOURCE_MIN + ZombRand(SOURCE_MAX - SOURCE_MIN + 1)
+    st.sx = math.floor(p:getX() + math.cos(ang) * dist)
+    st.sy = math.floor(p:getY() + math.sin(ang) * dist)
     st.current = st.line
     st.line = st.line + 1
     st.pending = REPEATS

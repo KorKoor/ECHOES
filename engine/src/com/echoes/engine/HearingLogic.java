@@ -31,7 +31,6 @@ public final class HearingLogic {
     /** Seam so the logic can be tested without the (final) IsoZombie class. */
     public interface ZView {
         IsoGridSquare square();
-        int id();
     }
 
     public static float adjust(float result, Object soundObj, Object zomObj) {
@@ -42,7 +41,6 @@ public final class HearingLogic {
             if (z == null) return result;
             return adjustCore(result, (WorldSoundManager.WorldSound) soundObj, new ZView() {
                 public IsoGridSquare square() { return z.getCurrentSquare(); }
-                public int id() { return z.getOnlineID(); }
             });
         } catch (Throwable t) {
             return failed(result, t);
@@ -63,8 +61,11 @@ public final class HearingLogic {
             if (s == null || z == null) return result;
             Stats.calls.incrementAndGet();
 
-            long key = (((long) s.x * 73856093L) ^ ((long) s.y * 19349663L) ^ ((long) s.z * 83492791L)) << 16
-                    ^ (z.id() & 0xffffL);
+            // The factor depends only on the two positions, so the cache is keyed by exactly those (never by zombie id:
+            // ids can be -1 or shared in single player, which would make zombies reuse each other's factor).
+            IsoGridSquare zsq = z.square();
+            if (zsq == null) return result;
+            long key = key(s.x, s.y, s.z, zsq.getX(), zsq.getY(), zsq.getZ());
             long now = System.currentTimeMillis();
             Entry e = cache.get(key);
             float f;
@@ -72,7 +73,7 @@ public final class HearingLogic {
                 f = e.factor;
                 Stats.cacheHits.incrementAndGet();
             } else {
-                f = compute(s, z);
+                f = compute(s, zsq);
                 if (cache.size() > 4096) cache.clear();
                 cache.put(key, new Entry(f, now + Options.cacheMs));
             }
@@ -88,11 +89,19 @@ public final class HearingLogic {
         }
     }
 
-    private static float compute(WorldSoundManager.WorldSound s, ZView z) {
+    /** 64-bit mix of two 3D integer positions (splitmix64 finaliser over a packed value); collisions are negligible. */
+    static long key(int sx, int sy, int sz, int zx, int zy, int zz) {
+        long a = ((long) (sx & 0xFFFFF) << 40) | ((long) (sy & 0xFFFFF) << 20) | (sz & 0xFFFFF);
+        long b = ((long) (zx & 0xFFFFF) << 40) | ((long) (zy & 0xFFFFF) << 20) | (zz & 0xFFFFF);
+        long h = a * 0x9E3779B97F4A7C15L ^ Long.rotateLeft(b * 0xC2B2AE3D27D4EB4FL, 29);
+        h ^= h >>> 30; h *= 0xBF58476D1CE4E5B9L; h ^= h >>> 27; h *= 0x94D049BB133111EBL; h ^= h >>> 31;
+        return h;
+    }
+
+    private static float compute(WorldSoundManager.WorldSound s, IsoGridSquare zsq) {
         float f = 1.0f;
         if (Options.hearingOcclusion) {
-            IsoGridSquare zsq = z.square();
-            if (zsq != null) f *= Occlusion.factor(zsq.getX(), zsq.getY(), zsq.getZ(), s.x, s.y, s.z);
+            f *= Occlusion.factor(zsq.getX(), zsq.getY(), zsq.getZ(), s.x, s.y, s.z);
         }
         if (Options.weatherHearing) {
             ClimateManager c = ClimateManager.getInstance();
