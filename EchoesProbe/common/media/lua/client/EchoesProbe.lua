@@ -124,7 +124,7 @@ local function runProbe()
     end)
     check("GameSounds keyword search", function()
         local keys = { "breath", "whisper", "murmur", "footstep", "door", "alarm", "heart", "cry", "voice",
-            "shuffle", "drag", "scrape", "knock", "drip", "thump", "scratch", "shot", "gunfire" }
+            "shuffle", "drag", "scrape", "knock", "drip", "thump", "scratch", "shot", "gunfire", "heartbeat", "cough", "shiver", "gasp" }
         local found = {}
         for _, k in ipairs(keys) do found[k] = {} end
         local cats = GameSounds.getCategories()
@@ -180,6 +180,19 @@ local function runProbe()
         local v = player:getVehicle()
         if not v then return "not in a vehicle (sit in one and re-run)" end
         return "speed=" .. tostring(v:getCurrentSpeedKmHour()) .. " engine=" .. tostring(v:isEngineStarted())
+    end)
+    check("fear/dizziness APIs", function()
+        local st = player:getStats()
+        local bd = player:getBodyDamage()
+        return "visibleZ=" .. tostring(st:getNumVisibleZombies()) .. " chasingZ=" .. tostring(st:getNumChasingZombies())
+            .. " bleedingParts=" .. tostring(bd:getNumPartsBleeding()) .. " bodyHealth=" .. tostring(bd:getOverallBodyHealth())
+            .. " isTripping=" .. tostring(st:isTripping()) .. " trippingAngle=" .. tostring(st:getTrippingRotAngle())
+    end)
+    check("zombie target visibility", function()
+        local list = getCell():getZombieList()
+        if list:size() == 0 then return "no zombie loaded" end
+        local z = list:get(0)
+        return "isTargetVisible=" .. tostring(z:isTargetVisible()) .. " hearing=" .. tostring(z.hearing)
     end)
     check("running flags", function() return tostring(player:isRunning()) .. "/" .. tostring(player:isSprinting()) end)
 

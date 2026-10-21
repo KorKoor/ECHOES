@@ -53,3 +53,11 @@ Todas con Debug activado (`[Echoes][DEBUG]` en `console.txt`).
 
 ## EchoesEngine (Java) — v0.1.0
 Ver `docs/05-java-tier.md` § "EchoesEngine 0.1.0". Pasar: la línea `[EchoesEngine] ... loaded`, la salida de `EchoesEngine_stats()` (en el probe y tras el experimento de ruido tras muros), cualquier error de ZombieBuddy sobre el parche, y la diferencia observada con `EchoesEngine_set("hearingOcclusion",0/1)`.
+
+## Novedades v0.4.0
+Con Debug activado.
+- **Olor:** hazte una herida sangrante (o corre mucho), aléjate de un zombi que no te haya visto y pasa cerca de tu rastro. Espera `tracking: scent=N`. Con lluvia el rastro dura menos. Si te parece demasiado fuerte/débil, ajusta `ScentStrength` (0–2) o desactiva `Scent`.
+- **Manada:** deja que un zombi te vea y te persiga; zombis inactivos cercanos a *él* deben ponerse en marcha (`pack=N`).
+- **Miedo:** con 2+ zombis a la vista o de noche en un lugar oscuro con presión alta, debe empezar un latido (`fear 0.xx: heartbeat starts`; si `sounds[heartbeat] = 0 candidates`, enviar el volcado del probe).
+- **Mareo (experimental):** pulsar **F8** con Debug: ¿rota/oscila la pantalla 6 s? Contar qué ves (con y sin Viewpoint) y la sensación (sutil/exagerado). Si funciona, activar `Dizziness` en Sandbox y agotarte corriendo hasta el límite.
+- **Borde oscuro:** con `Visual` activado, el borde de la pantalla late con el corazón.

@@ -65,6 +65,7 @@ local function tick()
                 md.echoesHeard = now
                 md.echoesHops = 0
             elseif md.echoesHeard and z:getTarget() == nil and started < BUDGET
+                and (md.echoesBusy == nil or now > md.echoesBusy)
                 and (now - md.echoesHeard) <= LOST_WINDOW_MS
                 and (not md.echoesSearched
                     or ((now - md.echoesSearched) > 8000
@@ -73,6 +74,7 @@ local function tick()
                 if sq then
                     z:pathToLocationF(sq:getX() + 0.5, sq:getY() + 0.5, sq:getZ())
                     md.echoesSearched = now
+                    md.echoesBusy = now + 5000
                     md.echoesHops = (md.echoesHops or 0) + 1
                     md.echoesHeard = now -- allow a short chain of room-to-room hops
                     started = started + 1

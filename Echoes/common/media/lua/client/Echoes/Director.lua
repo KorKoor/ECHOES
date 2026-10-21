@@ -225,6 +225,8 @@ function Director.evaluate(force)
         end
     end
 
+    if kind.ambiguous and Echoes.Fear then Echoes.Fear.shock(0.12 + 0.2 * pressure) end
+
     mem.last = t
     mem.log[#mem.log + 1] = { id = kind.id, sq = not kind.run, x = sq:getX(), y = sq:getY(), z = sq:getZ(), t = t,
         callback = remembered ~= nil }

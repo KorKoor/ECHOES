@@ -116,6 +116,22 @@ local function createPanel()
         if state.glare > 0.01 then self:drawRect(0, 0, w, h, state.glare, 1.0, 1.0, 0.95) end
         if state.dark > 0.01 then self:drawRect(0, 0, w, h, state.dark, 0.0, 0.0, 0.02) end
 
+        -- Fear / dizziness vignette: dark edges that pulse with the heartbeat.
+        local edge = math.max((Echoes.Fear and Echoes.Fear.level or 0) * 0.5, (Echoes.Dizzy and Echoes.Dizzy.level or 0) * 0.6)
+        if edge > 0.05 then
+            local since = now - (Echoes.Fear and Echoes.Fear.lastBeat or 0)
+            local env = math.exp(-since / 180)
+            local a = math.min(0.35, edge * (0.25 + 0.5 * env))
+            for i = 0, 5 do
+                local band = w * 0.025 * (i + 1)
+                local ai = a * (1 - i / 6)
+                self:drawRect(0, 0, w, band * h / w, ai * 0.5, 0, 0, 0)
+                self:drawRect(0, h - band * h / w, w, band * h / w, ai * 0.5, 0, 0, 0)
+                self:drawRect(0, 0, band, h, ai * 0.5, 0, 0, 0)
+                self:drawRect(w - band, 0, band, h, ai * 0.5, 0, 0, 0)
+            end
+        end
+
         if state.fig and Config.isEnabled("Apparitions") then
             local a = figureAlpha(now, state.fig, player)
             if a then drawFigure(self, state.fig.x, state.fig.base, state.fig.h, a) else state.fig = nil end

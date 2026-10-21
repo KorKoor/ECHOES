@@ -17,6 +17,12 @@ Sandbox_EN = {
     Sandbox_Echoes_ApparitionsEnabled = "Rare fleeting silhouettes at the edge of vision (experimental)",
     Sandbox_Echoes_EngineHearingEnabled = "Java engine: zombies hear through walls, doors and weather realistically",
     Sandbox_Echoes_EngineStrength = "Java engine: strength of the hearing model (0-1)",
+    Sandbox_Echoes_ScentEnabled = "Zombies can follow your scent trail (blood, exertion; rain washes it away)",
+    Sandbox_Echoes_PackAlertEnabled = "Zombies chasing you draw nearby idle zombies toward themselves",
+    Sandbox_Echoes_FearEnabled = "Fear: heartbeat and tension (no vanilla stat changes)",
+    Sandbox_Echoes_DizzinessEnabled = "Dizziness: screen sway after exhaustion, blood loss, cold (experimental)",
+    Sandbox_Echoes_ScentStrength = "Scent strength multiplier (0-2)",
+    Sandbox_Echoes_DizzinessScale = "Dizziness amplitude multiplier (0-3)",
     Sandbox_Echoes_Frequency = "Phenomena frequency",
     Sandbox_Echoes_Debug = "Debug logging",
 }

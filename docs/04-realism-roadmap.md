@@ -38,3 +38,22 @@ Versión de código: Echoes 0.1.0. **Nada se ha ejecutado en el juego.** "Implem
 
 ## Experimental y desactivado por defecto
 `Visual` (adaptación a la luz/deslumbramiento con un panel transparente a pantalla completa) y `Apparitions` (siluetas). Riesgo a comprobar: que el panel **no bloquee clics del ratón**. Activar en Sandbox → ECHOES solo para probar.
+
+---
+
+# 0.4.0 — olfato, sangre, manada, miedo y mareo
+
+## IA de zombis (servidor / un jugador): `Tracking.lua`
+- **Rastro de olor.** Cada jugador deja puntos de su recorrido. La intensidad sube con **heridas sangrantes** (`getNumPartsBleeding`, hasta +0,45), **esfuerzo** (correr, +0,15) y algo de ropa mojada; **se desvanece** con el tiempo (≈25 min de juego en aire quieto) y mucho más rápido con **lluvia** (−70 %) y **viento** (−30 %).
+- Un zombi **sin objetivo** que pasa cerca de un punto aún fresco (alcance 4–11 casillas según intensidad) camina por el rastro hacia puntos más nuevos. **Nunca recibe tu posición actual:** los puntos de menos de 1 minuto de juego están fuera de su alcance, así que sigue por dónde pasaste, no por dónde estás. Presupuesto de 5 zombis por pasada.
+- **Alerta de manada.** Un zombi que persigue a un objetivo que ve atrae a vecinos inactivos (≤12 casillas) hacia **él** (los gemidos), no hacia ti. Presupuesto de 4.
+- Un indicador `echoesBusy` por zombi evita que búsqueda, olor y manada se pisen.
+- Todo se apaga/ajusta en Sandbox (`Scent`, `ScentStrength`, `PackAlert`). Con el nivel Java, el oído físico ya reduce lo que los zombis oyen tras muros.
+
+## Tu personaje
+- **Miedo** (`Fear.lua`): nivel 0–1 a partir de zombis visibles y persiguiéndote (datos del propio juego), salud baja, presión nocturna y sustos de eventos inexplicables. Se expresa como **latido del corazón** (más rápido con más miedo; busca el sonido real del juego) y, con la capa visual activada, **bordes oscuros que laten**. No toca PANIC/STRESS ni ninguna estadística vanilla.
+- **Mareo** (`Dizzy.lua`): tras agotarte, con pérdida de sangre, frío profundo o sin dormir, usa el efecto nativo de "tripping" (`Stats.setTripping/setTrippingRotAngle`) con una onda lenta. **Desactivado por defecto** porque la unidad del ángulo y qué más hace el juego en ese estado no están verificados. **F8** (con Debug) lanza una demo de 6 s para comprobarlo. Si Viewpoint usa su propia cámara puede no verse.
+- **Respiración** (v0.1.0), **temblor/frío** calculados, y oído algo reducido con pánico o falta de aliento.
+
+## Qué sigue sin estar
+Temblor visible de manos o del arma, cojera/tropiezos físicos (hay `setBumpType`, `setSlowFactor`… sin semántica verificada), visión borrosa real. Y la IA visual de zombis (conos, luz, sigilo), que requiere el nivel Java con datos del motor.
