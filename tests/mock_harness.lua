@@ -78,6 +78,11 @@ function isClient() return false end function isServer() return false end
 function getWorldSoundManager() return { addSound = function(_, _, x, y) played[#played+1] = "LURE@" .. x .. "," .. y end } end
 function getOnlinePlayers() return list({ player }) end
 function sendServerCommand() end
+function getText(k) return "TEXT:" .. k end
+local radioLog = {}
+function getZomboidRadio() return { getRandomFrequency = function() return 93200 end,
+  scrambleString = function(_, t) return t .. "~" end,
+  SendTransmission = function(_, sx, sy, ch, msg) radioLog[#radioLog+1] = ch .. ":" .. msg end } end
 
 EchoesEngine_version = function() return "0.1.0" end
 EchoesEngine_set = function(k, v) played[#played+1] = "SET:" .. k .. "=" .. tostring(v) end
@@ -87,7 +92,7 @@ EchoesEngine_msSinceLoud = function() return 5000 end
 EchoesEngine_lastLoudRadius = function() return 80 end
 for _, f in ipairs({ "shared/Echoes/Core.lua","shared/Echoes/WorldEvents.lua","client/Echoes/Timer.lua","client/Echoes/Sounds.lua","client/Echoes/Engine.lua","shared/Echoes/ZombieUtil.lua",
   "client/Echoes/Weather.lua","client/Echoes/Acoustics.lua","client/Echoes/Body.lua","client/Echoes/Psyche.lua",
-  "client/Echoes/Phenomena.lua","client/Echoes/Places.lua","client/Echoes/Stories.lua","client/Echoes/Senses.lua","client/Echoes/VehicleSense.lua","client/Echoes/Interaction.lua","client/Echoes/Visual.lua","client/Echoes/Director.lua","client/Echoes/RoomDecay.lua","client/Echoes/Fear.lua","client/Echoes/Dizzy.lua","server/Echoes/ZombieAwareness.lua","server/Echoes/Tracking.lua","client/Echoes/Debug.lua" }) do
+  "client/Echoes/Phenomena.lua","client/Echoes/Places.lua","client/Echoes/Stories.lua","client/Echoes/Senses.lua","client/Echoes/VehicleSense.lua","client/Echoes/Interaction.lua","client/Echoes/Visual.lua","client/Echoes/Director.lua","client/Echoes/RoomDecay.lua","client/Echoes/Fear.lua","client/Echoes/Dizzy.lua","server/Echoes/ZombieAwareness.lua","server/Echoes/Tracking.lua","server/Echoes/RadioSignals.lua","client/Echoes/Debug.lua" }) do
   dofile((BASE or ".") .. "/Echoes/42/media/lua/" .. f) end
 fire("OnGameStart")
 fire("EveryOneMinute"); fire("EveryTenMinutes"); fire("EveryHours")
@@ -111,6 +116,9 @@ for i = 1, 40 do tms = tms + 200; for _, f in ipairs(handlers.OnTick or {}) do f
 print("PLAYED:", table.concat(played, " | "))
 print("pressure", Echoes.Psyche.pressure, "winded", Echoes.Body.state.winded, "tremor", Echoes.Body.state.tremor)
 
+-- radio story: force a broadcast
+for i = 1, 400 do fire('EveryHours') ; for k = 1, 4 do fire('EveryOneMinute') end end
+print('RADIO', #radioLog, radioLog[1], radioLog[#radioLog])
 -- haunted places escalate
 local pl = Echoes.Places.mark(player, 1); pl.theme = "door"
 zombie.getX = function() return 300 end

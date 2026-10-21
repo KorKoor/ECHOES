@@ -30,6 +30,7 @@ local defaults = {
     TraumaEnabled = true,
     DecayEnabled = true,
     WorldEventsEnabled = true,
+    RadioEnabled = true,
     SensesEnabled = true,
     InteractionEnabled = true,
     AIEnabled = true,

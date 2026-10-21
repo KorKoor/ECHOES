@@ -27,6 +27,7 @@ Sandbox_EN = {
     Sandbox_Echoes_EngineStealthStrength = "Java engine: stealth strength (0-1)",
     Sandbox_Echoes_EngineNoiseEnabled = "Java engine: a heavily loaded character makes more noise (experimental)",
     Sandbox_Echoes_EngineNoiseStrength = "Java engine: load noise strength (0-2)",
+    Sandbox_Echoes_RadioEnabled = "A distant survivor transmits on a hidden radio frequency",
     Sandbox_Echoes_Frequency = "Phenomena frequency",
     Sandbox_Echoes_Debug = "Debug logging",
 }

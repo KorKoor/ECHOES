@@ -27,6 +27,7 @@ Sandbox_ES = {
     Sandbox_Echoes_EngineStealthStrength = "Motor Java: intensidad del sigilo (0-1)",
     Sandbox_Echoes_EngineNoiseEnabled = "Motor Java: un personaje muy cargado hace más ruido (experimental)",
     Sandbox_Echoes_EngineNoiseStrength = "Motor Java: intensidad del ruido por carga (0-2)",
+    Sandbox_Echoes_RadioEnabled = "Un superviviente lejano transmite en una frecuencia de radio oculta",
     Sandbox_Echoes_Frequency = "Frecuencia de fenómenos",
     Sandbox_Echoes_Debug = "Registro de depuración",
 }

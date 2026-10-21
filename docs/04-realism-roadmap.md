@@ -69,3 +69,12 @@ Temblor visible de manos o del arma, cojera/tropiezos físicos (hay `setBumpType
 - **Informe de estado y coste** (`Debug.lua`, F7): todo `Echoes.safe(...)` cuenta llamadas, tiempo medio/máximo y errores por módulo; también cada 6 h con Debug.
 - **Corrección encontrada por pruebas aleatorias:** `math.atan2` no existe en todas las variantes de Lua; ahora se usa `Echoes.atan2`.
 - Hecho notable del Javadoc: el juego **ya aplica** un desvío de 2–10 casillas al oír ruidos que no ve (`HEARING_UNSEEN_OFFSET_*`, mayor con lluvia fuerte) y tiene constantes de visión por oscuridad/niebla/lluvia; el nivel Java *añade* atenuación física, no sustituye eso.
+
+---
+
+# 0.6.0 — señales de radio, sordera, motor Java ampliado
+
+- **Superviviente por radio** (`RadioSignals.lua`): una frecuencia oculta por mundo (`ZomboidRadio.getRandomFrequency`) por la que un grupo lejano transmite una historia de 8 mensajes (EN/ES) a lo largo de la partida, cada uno repetido 3 minutos de juego; más degradado con lluvia, viento y niebla (`scrambleString`). El jugador debe barrer el dial de una radio encendida. Sin marcadores ni aviso. Tras el mensaje 8, silencio. Todo por `ZomboidRadio.SendTransmission`; la semántica de alcance/`codes`/potencia no está verificada.
+- **Sordera tras disparos** (`Body.lua` + `LoudPatch`): −60 % de oído para los sonidos de ECHOES durante 30 s y zumbido, salvo con protección auditiva.
+- **EchoesEngine 0.4.0:** oído físico de zombis; visión de zombis (observa, sigilo opcional); ruido del jugador por carga (observa, opcional); detección de ruidos fuertes. Todo medible con `EchoesEngine_stats()`.
+- **Infraestructura:** CI en GitHub (sintaxis Lua, humo con API simulada en 12 semillas, build y pruebas del JAR), traducciones ES/EN, informe F7, verificación cruzada con mods B42 reales.

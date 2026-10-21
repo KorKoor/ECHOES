@@ -162,6 +162,12 @@ option Echoes.EngineNoiseStrength
     page = Echoes, translation = Echoes_EngineNoiseStrength,
 }
 
+option Echoes.RadioEnabled
+{
+    type = boolean, default = true,
+    page = Echoes, translation = Echoes_RadioEnabled,
+}
+
 option Echoes.Frequency
 {
     type = double, min = 0.1, max = 4.0, default = 1.0,

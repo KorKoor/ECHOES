@@ -1,0 +1,10 @@
+IGUI_ES = {
+    IGUI_Echoes_Radio_1 = "...¿hay alguien ahí fuera... alguien puede oírme... estamos en un edificio cerca del río...",
+    IGUI_Echoes_Radio_2 = "...somos seis. Dos niños. Tenemos agua pero la comida se acaba...",
+    IGUI_Echoes_Radio_3 = "...no vengan por carretera. Se juntan donde hay ruido. Mantengan silencio...",
+    IGUI_Echoes_Radio_4 = "...Marcus tiene fiebre. Empezó después del corte del brazo. No sé qué hacer...",
+    IGUI_Echoes_Radio_5 = "...oímos algo por la noche. Pasos. Arriba. Arriba no vive nadie...",
+    IGUI_Echoes_Radio_6 = "...nos mudamos. El generador murió. Si oyen esto... al norte. Sigan los tendidos eléctricos...",
+    IGUI_Echoes_Radio_7 = "...seguimos aquí. Ahora somos tres. La puerta estaba abierta esta mañana. La cerramos...",
+    IGUI_Echoes_Radio_8 = "...si alguien escucha. No respondan a los golpes. No respondan...",
+}
