@@ -192,7 +192,8 @@ local function runProbe()
         local list = getCell():getZombieList()
         if list:size() == 0 then return "no zombie loaded" end
         local z = list:get(0)
-        return "isTargetVisible=" .. tostring(z:isTargetVisible()) .. " hearing=" .. tostring(z.hearing)
+        -- note: Java instance fields are not readable from Lua since 42.15 (static ones are)
+        return "isTargetVisible=" .. tostring(z:isTargetVisible())
     end)
     check("running flags", function() return tostring(player:isRunning()) .. "/" .. tostring(player:isSprinting()) end)
 

@@ -104,6 +104,12 @@ end
 
 -- Normalised (0..1) value of a CharacterStat for a character, using the stat's own min/max.
 -- Returns nil if the stat or the call is unavailable (B42 CharacterStat registry, unverified from Lua).
+-- Builds before 42.13 had no CharacterStat; the old getters are tried as a fallback (value / known maximum).
+local LEGACY = {
+    ENDURANCE = { "getEndurance", 1 }, FATIGUE = { "getFatigue", 1 }, STRESS = { "getStress", 1 },
+    PANIC = { "getPanic", 100 }, SANITY = { "getSanity", 1 },
+}
+
 function Echoes.statNorm(character, key)
     local ok, v = pcall(function()
         local stat = CharacterStat[key]
@@ -113,6 +119,11 @@ function Echoes.statNorm(character, key)
         return (val - mn) / (mx - mn)
     end)
     if ok and type(v) == "number" then return v end
+    local legacy = LEGACY[key]
+    if legacy then
+        local ok2, v2 = pcall(function() return character:getStats()[legacy[1]](character:getStats()) end)
+        if ok2 and type(v2) == "number" then return Echoes.clamp(v2 / legacy[2], 0, 1) end
+    end
     return nil
 end
 
