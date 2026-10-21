@@ -2,7 +2,7 @@
 -- UNTESTED prototype: APIs marked [V] in docs/02-design.md still need in-game verification.
 
 Echoes = Echoes or {}
-Echoes.VERSION = "0.0.1"
+Echoes.VERSION = "0.0.2"
 
 -- Logging ---------------------------------------------------------------------------------
 Echoes.Log = {}
