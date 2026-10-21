@@ -6,6 +6,7 @@ local Places = {}
 Echoes.Places = Places
 
 local MAX_PLACES = 12
+local MAX_PICK_DIST = 30 -- tiles: only places the player could perceive are chosen
 local LIFETIME_HOURS = 24 * 10
 
 local function store(player)
@@ -59,9 +60,12 @@ function Places.pick(player, minAgeHours)
             if sq then
                 -- nearer places are far more likely: you cannot hear what happens 80 tiles away
                 local dx, dy = p.x - player:getX(), p.y - player:getY()
-                local w = p.w * (1.0 - age / LIFETIME_HOURS) / (1.0 + math.sqrt(dx * dx + dy * dy) / 20)
-                usable[#usable + 1] = { sq = sq, w = w, place = p }
-                total = total + w
+                local dist = math.sqrt(dx * dx + dy * dy)
+                if dist <= MAX_PICK_DIST then -- beyond this nothing could be seen or heard
+                    local w = p.w * (1.0 - age / LIFETIME_HOURS) / (1.0 + dist / 20)
+                    usable[#usable + 1] = { sq = sq, w = w, place = p }
+                    total = total + w
+                end
             end
         end
     end

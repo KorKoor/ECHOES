@@ -2,7 +2,7 @@
 
 Mod modular para **Project Zomboid Build 42** centrado en tensión, sentidos y simulación, con compatibilidad opcional con **Project Viewpoint**. Lua puro para la lógica y un **nivel Java opcional (ZombieBuddy)** para lo que el motor no deja hacer desde Lua.
 
-> **Estado: prototipo 0.5.0. Nada se ha ejecutado todavía en el juego.** Lo que está verificado es la existencia de las clases y métodos usados (Javadoc 42.20.0), la sintaxis de todo el Lua, la lógica contra un mundo simulado (`tests/mock_harness.lua`, varias semillas) y la lógica del módulo Java (`engine/build.sh`). Ver `docs/03-test-plan.md`.
+> **Estado: prototipo 0.6.0. Nada se ha ejecutado todavía en el juego.** Lo que está verificado es la existencia de las clases y métodos usados (Javadoc 42.20.0), la sintaxis de todo el Lua, la lógica contra un mundo simulado (`tests/mock_harness.lua`, varias semillas) y la lógica del módulo Java (`engine/build.sh`). Ver `docs/03-test-plan.md`.
 
 ## Contenido
 | Carpeta | Qué es |

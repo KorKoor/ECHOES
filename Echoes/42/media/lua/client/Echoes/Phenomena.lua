@@ -88,7 +88,10 @@ local function runFlicker(player, near)
     return lamp.sq
 end
 
--- Kinds consumed by the Director. `run(player)` returns the source square on success, nil otherwise.
+-- Kinds consumed by the Director. `run(player, placeSq)` returns the square where it happened, or nil on failure.
+-- A kind with `usesPlace = true` receives the haunted place's square as its 2nd argument and must act around it
+-- (if it fails there the Director calls it again with nil, so it acts near the player). Kinds without the flag
+-- receive nil and never advance a place's stage.
 Phenomena.kinds = {
     { id = "door_ajar", weight = 0.6, ambiguous = true, theme = "door", usesPlace = true, run = runDoorAjar },
     { id = "light_flicker", weight = 0.5, ambiguous = true, theme = "light", usesPlace = true, run = runFlicker },

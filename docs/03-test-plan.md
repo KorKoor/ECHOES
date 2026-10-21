@@ -73,3 +73,8 @@ Con Debug activado.
 2. **Disparo sin protección:** dispara un arma. Debe aparecer `loudEvents>=1`; el oído de los sonidos de ECHOES baja unos segundos (y zumbido si existe sonido). Con orejeras puestas no debe contar. Enviar el resultado.
 3. **Carga:** con `EngineNoise` activado, correr con la mochila llena frente a correr ligero: el `meanRadius` y los zombis atraídos deberían subir.
 4. **Sigilo (opcional):** `EngineStealth` activado + `EngineStealthStrength` 0,6: agáchate de noche a >6 casillas de un zombi que no te ha visto; mira `skipped` en el contador.
+
+## Novedades v0.6.0
+- **Radio del superviviente:** con una radio encendida (con batería o corriente), barrer el dial; tras unas horas de juego (más probable de noche) debe aparecer una frecuencia con mensajes (`survivor transmission begins` en el log y `survivor radio frequency chosen: N`). Si no se oye nada, probar con `Frequency=4` y enviar el log: es la parte con más incertidumbre (semántica de `SendTransmission`).
+- **Sordera:** disparar sin protección y notar que los sonidos de ECHOES se amortiguan ~30 s (ver también `EchoesEngine_stats()`).
+- **Lugares encantados con puertas/luces:** si un lugar de tema "door" o "light" dispara, la puerta entreabierta o la lámpara que parpadea debe estar cerca de ese lugar (≤14 casillas) y a menos de 30 casillas de ti; si no hay puerta/lámpara allí, ocurre cerca de ti sin avanzar la etapa del lugar.

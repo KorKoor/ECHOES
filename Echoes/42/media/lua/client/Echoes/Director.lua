@@ -232,11 +232,20 @@ function Director.evaluate(force)
     local kind = pickKind(kinds, pressure, place and place.theme)
     local sq, remembered
 
+    local usedPlace = false
     if kind.run then
-        sq = kind.run(player, kind.usesPlace and placeSq or nil)
+        if kind.usesPlace and placeSq then
+            sq = kind.run(player, placeSq)
+            if sq then
+                local dx, dy = sq:getX() - placeSq:getX(), sq:getY() - placeSq:getY()
+                usedPlace = dx * dx + dy * dy <= 16 * 16 -- it really happened at that place
+            end
+        end
+        if not sq then sq = kind.run(player, nil) end -- nothing suitable at the place: act near the player instead
         if not sq then Log.debug("could not stage " .. kind.id); return end
     else
         remembered = placeSq or ((ZombRandFloat(0, 1) < CALLBACK_CHANCE) and callbackSquare(mem, player) or nil)
+        usedPlace = placeSq ~= nil
         local behind = (not kind.needsDoor) and ZombRandFloat(0, 1) < (0.25 + 0.35 * pressure)
         if remembered and kind.needsDoor then -- a door sound needs a door: look near the remembered spot
             remembered = findDoorNear(remembered, 6) or remembered
@@ -259,17 +268,17 @@ function Director.evaluate(force)
             end)
         end
     end
-    if place and (not kind.run or kind.usesPlace) and Echoes.Places then Echoes.Places.escalate(place) end -- only if used
+    if place and usedPlace and Echoes.Places then Echoes.Places.escalate(place) end -- only if the place was really used
 
     if kind.ambiguous and Echoes.Fear then Echoes.Fear.shock(0.12 + 0.2 * pressure) end
 
     mem.last = t
     mem.log[#mem.log + 1] = { id = kind.id, sq = not kind.run, x = sq:getX(), y = sq:getY(), z = sq:getZ(), t = t,
-        callback = remembered ~= nil, theme = place and place.theme or nil, stage = stage }
+        callback = remembered ~= nil or usedPlace, theme = usedPlace and place.theme or nil, stage = usedPlace and stage or 0 }
     if #mem.log > 20 then table.remove(mem.log, 1) end
     Log.info("phenomenon fired: " .. kind.id .. " at " .. sq:getX() .. "," .. sq:getY()
         .. (remembered and " (callback)" or "")
-        .. (place and (" place=" .. tostring(place.theme) .. "/stage" .. stage) or "")
+        .. (usedPlace and (" place=" .. tostring(place.theme) .. "/stage" .. stage) or "")
         .. string.format(" pressure=%.2f", pressure))
 end
 
