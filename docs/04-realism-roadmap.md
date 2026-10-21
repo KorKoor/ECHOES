@@ -22,3 +22,19 @@ Versión de código: Echoes 0.1.0. **Nada se ha ejecutado en el juego.** "Implem
 2. Validar RoomDecay → extender a 6 y 8 (mismo patrón).
 3. Leer la API de Viewpoint → decidir 5, 7, 12.
 4. Calibrar 1, 9 y 10 con tus impresiones de juego.
+
+---
+
+# Actualización 0.2.0 — los 6 sistemas, punto por punto
+
+| Sistema | Implementado (sin probar en juego) | No implementado y por qué |
+|---|---|---|
+| **1. Percepción** | `Senses.lua`: pistas direccionales desde la **posición real** de zombis que no ves (4–12 casillas, atenuadas por muros/puertas, con cooldown); incertidumbre posicional de los sonidos propios de noche (hasta ~3 casillas con presión alta); ruidos a tu espalda (el Director favorece fuentes detrás de ti cuando hay presión). `Weather`, `Body`, cabina de vehículo modulan lo que oyes. | "Pérdida de referencias en la oscuridad" visual: solo vía capa de pantalla (`Visual`, experimental). |
+| **2. Interacción** | `Interaction.lua`: menú contextual **"Listen at the door"** (acción temporizada): tras unos segundos con el oído en la puerta oyes, amortiguados, los zombis reales detrás de ella (máx. 4); coste: quedarte quieto y hacer un ruido mínimo. | **Asomarte por esquinas/ventanas:** no hay API verificada de inclinación ni de cámara de Viewpoint; no se simula. |
+| **3. IA zombi** | `ZombieAwareness.lua` (servidor/SP): un zombi que investigó un ruido y no encontró nada busca en hasta 3 habitaciones cercanas (`pathToLocationF` a casillas interiores aleatorias **junto a él**, sin conocer tu posición); presupuesto de 6 búsquedas por tick, 400 zombis escaneados, cooldown 90 s. Alarma lejana persistente que atrae con `addSound`. | Reacción en cadena urbana entre alarmas reales: depende de cómo propague el juego las alarmas de edificio (pendiente de observar). Rastreo avanzado: se deja al motor. |
+| **4. Conducción** | `VehicleSense.lua`: amortiguación de cabina y enmascaramiento por velocidad; pista de punto ciego (zombi real cerca por detrás). | Retrovisores, lluvia sobre cristales, suciedad: sin técnica verificada (render propio / Viewpoint). La visibilidad por lluvia/niebla la sigue dando el juego. |
+| **5. Mundo dinámico** | Alarma que dura horas y atrae zombis; **luces de actividad humana** (una lámpara lejana aparece encendida de noche y se apaga horas después, guardada en ModData); tiros lejanos tenues (sin atraer); historia "puerta cerrada por dentro" con golpes ocasionales (`Stories.lua`); decaimiento eléctrico por sala; goteras en salas deterioradas cuando llueve. | Rastros de evacuación, habitaciones de lucha: requieren colocar objetos; pendiente. |
+| **6. Presencias** | Pasos, puertas, voces (si existe sonido), puerta entreabierta, luz que parpadea, **lugares cargados** (`Places.lua`: donde sufriste un pico de pánico, los fenómenos vuelven con más probabilidad), eco de lugar, memoria y cooldowns. **Siluetas**: `Visual.lua` dibuja una figura con rectángulos en el borde de la pantalla durante 0,7–1,6 s, desaparece si te giras hacia ella; no finge ser un objeto del mundo. | Figuras 3D en el mundo: sin técnica verificada. |
+
+## Experimental y desactivado por defecto
+`Visual` (adaptación a la luz/deslumbramiento con un panel transparente a pantalla completa) y `Apparitions` (siluetas). Riesgo a comprobar: que el panel **no bloquee clics del ratón**. Activar en Sandbox → ECHOES solo para probar.

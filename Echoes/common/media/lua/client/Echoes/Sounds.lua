@@ -67,8 +67,9 @@ function Sounds.resolve(key, static, patterns, exclude)
 end
 
 -- Plays one of `names` (random) at a world position. Returns the name played, or nil.
-function Sounds.playAt(x, y, z, names, volume, pitchJitter)
+function Sounds.playAt(x, y, z, names, volume, pitchJitter, uncertain)
     if not names or #names == 0 then return nil end
+    if uncertain and Echoes.Senses then x, y, z = Echoes.Senses.uncertain(x, y, z) end
     local em = getWorld():getFreeEmitter(x, y, z)
     if not em then return nil end
     local name = names[1 + ZombRand(#names)]

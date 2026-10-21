@@ -8,6 +8,13 @@ Sandbox_EN = {
     Sandbox_Echoes_TraumaEnabled = "Traumatic experiences leave a lasting mark",
     Sandbox_Echoes_DecayEnabled = "Gradual electrical decay of rooms",
     Sandbox_Echoes_WorldEventsEnabled = "Distant world events (alarms)",
+    Sandbox_Echoes_SensesEnabled = "Directional cues for unseen threats, darkness uncertainty",
+    Sandbox_Echoes_InteractionEnabled = "Contextual actions (listen at doors)",
+    Sandbox_Echoes_AIEnabled = "Zombie room search after investigating a noise",
+    Sandbox_Echoes_VehicleEnabled = "Driving senses (cabin muffling, blind-spot cues)",
+    Sandbox_Echoes_StoriesEnabled = "Environmental stories (locked doors, knocks)",
+    Sandbox_Echoes_VisualEnabled = "Screen overlay: eye adaptation and glare (experimental)",
+    Sandbox_Echoes_ApparitionsEnabled = "Rare fleeting silhouettes at the edge of vision (experimental)",
     Sandbox_Echoes_Frequency = "Phenomena frequency",
     Sandbox_Echoes_Debug = "Debug logging",
 }

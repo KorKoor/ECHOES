@@ -2,7 +2,7 @@
 -- UNTESTED prototype: APIs marked [V] in docs/02-design.md still need in-game verification.
 
 Echoes = Echoes or {}
-Echoes.VERSION = "0.1.0"
+Echoes.VERSION = "0.2.0"
 
 -- Logging ---------------------------------------------------------------------------------
 Echoes.Log = {}
@@ -30,6 +30,13 @@ local defaults = {
     TraumaEnabled = true,
     DecayEnabled = true,
     WorldEventsEnabled = true,
+    SensesEnabled = true,
+    InteractionEnabled = true,
+    AIEnabled = true,
+    VehicleEnabled = true,
+    StoriesEnabled = true,
+    VisualEnabled = false,
+    ApparitionsEnabled = false,
     Frequency = 1.0,
     Debug = false,
 }

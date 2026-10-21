@@ -48,6 +48,48 @@ option Echoes.WorldEventsEnabled
     page = Echoes, translation = Echoes_WorldEventsEnabled,
 }
 
+option Echoes.SensesEnabled
+{
+    type = boolean, default = true,
+    page = Echoes, translation = Echoes_SensesEnabled,
+}
+
+option Echoes.InteractionEnabled
+{
+    type = boolean, default = true,
+    page = Echoes, translation = Echoes_InteractionEnabled,
+}
+
+option Echoes.AIEnabled
+{
+    type = boolean, default = true,
+    page = Echoes, translation = Echoes_AIEnabled,
+}
+
+option Echoes.VehicleEnabled
+{
+    type = boolean, default = true,
+    page = Echoes, translation = Echoes_VehicleEnabled,
+}
+
+option Echoes.StoriesEnabled
+{
+    type = boolean, default = true,
+    page = Echoes, translation = Echoes_StoriesEnabled,
+}
+
+option Echoes.VisualEnabled
+{
+    type = boolean, default = false,
+    page = Echoes, translation = Echoes_VisualEnabled,
+}
+
+option Echoes.ApparitionsEnabled
+{
+    type = boolean, default = false,
+    page = Echoes, translation = Echoes_ApparitionsEnabled,
+}
+
 option Echoes.Frequency
 {
     type = double, min = 0.1, max = 4.0, default = 1.0,

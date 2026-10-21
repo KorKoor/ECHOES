@@ -54,12 +54,78 @@ local function announce(x, y)
     end
 end
 
+-- Signs of human activity: a lamp in a distant, unseen building is found lit at night, and goes dark again hours
+-- later. Only lamps that already exist and have power are touched. Remembered in ModData between sessions.
+local function findLampNear(player, minD, maxD)
+    local cell = getCell()
+    for _ = 1, 40 do
+        local ang = ZombRand(360) * math.pi / 180
+        local dist = minD + ZombRand(maxD - minD + 1)
+        local sq = cell:getGridSquare(math.floor(player:getX() + math.cos(ang) * dist),
+            math.floor(player:getY() + math.sin(ang) * dist), 0)
+        if sq and sq:getRoom() then
+            local objs = sq:getObjects()
+            for i = 0, objs:size() - 1 do
+                local o = objs:get(i)
+                if instanceof(o, "IsoLightSwitch") and not o:isActivated() and o:canSwitchLight() then
+                    return sq, o
+                end
+            end
+        end
+    end
+    return nil
+end
+
+local function updateActivityLights(state, ps, night)
+    state.lights = state.lights or {}
+    local nowH = getGameTime():getWorldAgeHours()
+    for i = #state.lights, 1, -1 do -- turn expired lamps off again (when their square is loaded)
+        local l = state.lights[i]
+        if nowH >= l.off then
+            local sq = getCell():getGridSquare(l.x, l.y, l.z)
+            if sq then
+                local objs = sq:getObjects()
+                for k = 0, objs:size() - 1 do
+                    local o = objs:get(k)
+                    if instanceof(o, "IsoLightSwitch") then o:setActivated(false) end
+                end
+                table.remove(state.lights, i)
+            end
+        end
+    end
+    if not night or #state.lights >= 3 then return end
+    if ZombRandFloat(0, 1) > 0.05 * Config.get("Frequency") then return end
+    local p = ps[1 + ZombRand(#ps)]
+    local sq, lamp = findLampNear(p, 22, 45)
+    if sq and getWorld():isHydroPowerOn() then
+        lamp:setActivated(true)
+        state.lights[#state.lights + 1] = { x = sq:getX(), y = sq:getY(), z = sq:getZ(), off = nowH + 2 + ZombRand(5) }
+        Log.info(string.format("activity light at %d,%d", sq:getX(), sq:getY()))
+    end
+end
+
+-- A faint gunshot far away: a reason to wonder, nothing more (no lure).
+local function playDistantShot()
+    if not Echoes.Sounds then return end
+    local p = getPlayer()
+    if not p then return end
+    local ang = ZombRand(360) * math.pi / 180
+    local names = Echoes.Sounds.resolve("distantShot", {}, { "shot", "gunfire" }, { "reload", "empty", "dry", "shotgun_pump" })
+    local f = 0.18 * Echoes.Weather.hearingMultiplier(p:getCurrentSquare())
+    Echoes.Sounds.playAt(p:getX() + math.cos(ang) * 14, p:getY() + math.sin(ang) * 14, p:getZ(), names, f, 0.03)
+end
+
 local function hourly()
     if isClient() or not Config.isEnabled("WorldEvents") then return end
     local ps = players()
     if #ps == 0 then return end
 
     local state = ModData.getOrCreate("EchoesWorld")
+    local nightNow = getClimateManager():getNightStrength() > 0.5
+    updateActivityLights(state, ps, nightNow)
+    if ZombRandFloat(0, 1) < 0.02 * Config.get("Frequency") then
+        if isServer() then sendServerCommand("Echoes", "DistantShot", {}) else playDistantShot() end
+    end
     if state.alarm then
         lure(state.alarm.x, state.alarm.y)
         announce(state.alarm.x, state.alarm.y)
@@ -90,6 +156,8 @@ if Events.OnServerCommand then
     Events.OnServerCommand.Add(function(module, command, args)
         if module == "Echoes" and command == "DistantAlarm" and args then
             Echoes.safe("playDistant", playDistant, args.x, args.y)
+        elseif module == "Echoes" and command == "DistantShot" then
+            Echoes.safe("playDistantShot", playDistantShot)
         end
     end)
 end

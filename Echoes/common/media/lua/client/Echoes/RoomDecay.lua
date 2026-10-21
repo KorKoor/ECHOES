@@ -26,6 +26,21 @@ end
 
 local lastRoomId = nil
 
+-- Leaky rooms (stage 2+, ~30% of rooms by hash): dripping sounds while it rains, only for the room you are in.
+local function maybeDrip(player, room, stage)
+    if stage < 2 then return end
+    local id = room:getRoomDef():getID()
+    if hash01(id, 7) > 0.30 then return end
+    local ok, rain = pcall(function() return getClimateManager():getRainIntensity() end)
+    if not ok or type(rain) ~= "number" or rain < 0.15 then return end
+    if ZombRandFloat(0, 1) > 0.5 then return end
+    local names = Echoes.Sounds.resolve("drip", {}, { "drip", "droplet" }, { "blood" })
+    local sq = room:getRandomFreeSquare()
+    if sq and Echoes.Sounds.playAt(sq:getX() + 0.5, sq:getY() + 0.5, sq:getZ(), names, 0.3 + 0.3 * rain, 0.1) then
+        Log.debug("drip in leaky room")
+    end
+end
+
 local function applyToRoom(room, rec, stage)
     local switches = room:getLightSwitches()
     local changed = 0
@@ -76,6 +91,8 @@ local function update(player)
     local key = tostring(id)
     local rec = store[key]
     if not rec then rec = { stage = -1 }; store[key] = rec end
+
+    maybeDrip(player, room, stage)
 
     if rec.stage < stage then
         applyToRoom(room, rec, stage)

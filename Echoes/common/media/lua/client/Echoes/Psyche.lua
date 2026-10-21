@@ -49,7 +49,10 @@ local function updateTrauma(player)
     if not Config.isEnabled("Trauma") then return end
     local d = data(player)
     local panic = Echoes.statNorm(player, "PANIC") or 0
-    if panic > 0.8 then d.trauma = math.min(1.0, d.trauma + 0.03) end
+    if panic > 0.8 then
+        d.trauma = math.min(1.0, d.trauma + 0.03)
+        if Echoes.Places then Echoes.Places.mark(player, 0.5) end
+    end
 end
 
 Events.EveryOneMinute.Add(function()

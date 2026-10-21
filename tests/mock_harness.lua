@@ -21,11 +21,14 @@ local function sq(x, y, z, o) o = o or {}
   function s:isBlockedTo() return false end
   function s:getDoor(n) return o.door and n and o.door or nil end
   function s:getObjects() return list(self.objs) end
-  function s:getRoom() return o.room end
+  function s:getRoom() if x % 2 ~= 0 then return nil end
+    return { hasLightSwitches=function() return true end, getRoomDef=function() return { getID=function() return 42 end } end,
+      getLightSwitches=function() return list({ setmetatable({ getSquare=function() return s end, getModData=function() return {} end }, { __index = lamp }) }) end,
+      getRandomFreeSquare=function() return s end } end
   function s:getModData() return {} end
   return s end
 local door = { IsOpen = function() return false end, isLocked = function() return false end,
-  isBarricaded = function() return false end, ToggleDoorSilent = function() played[#played+1]="TOGGLE" end }
+  isBarricaded = function() return false end, setLocked = function(_, v) played[#played+1]="LOCK="..tostring(v) end, ToggleDoorSilent = function() played[#played+1]="TOGGLE" end }
 local lamp = { class = "IsoLightSwitch", isActivated = function() return true end, canSwitchLight = function() return true end,
   setActivated = function(_, v) played[#played+1] = "lamp=" .. tostring(v) end }
 local cache = {}
@@ -33,7 +36,13 @@ local cell = {}
 function cell:getGridSquare(x, y, z) local k = x .. "," .. y .. "," .. z
   if not cache[k] then cache[k] = sq(x, y, z, { door = (x % 5 == 0 and y % 3 == 0) and door or nil, objs = (x % 7 == 0) and { lamp } or {} }) end
   return cache[k] end
-function cell:getZombieList() return list({}) end
+local zsq_ = nil
+local zombie = { getX=function() return 106.5 end, getY=function() return 100.5 end, getZ=function() return 0 end,
+  getCurrentSquare=function() return cell:getGridSquare(106,100,0) end, getModData=function() return zmd end,
+  isRespondingToPlayerSound=function() return zresp end, isMovingToPlayerSound=function() return false end,
+  getTarget=function() return nil end, pathToLocationF=function(_, x, y) played[#played+1]="PATH@"..math.floor(x)..","..math.floor(y) end }
+zmd = {}; zresp = true
+function cell:getZombieList() return list({ zombie }) end
 local md = {}
 local stats = { get = function(_, s) return s.v end }
 CharacterStat = {}
@@ -42,7 +51,7 @@ for _, n in ipairs({ "ENDURANCE","FATIGUE","STRESS","PANIC","SANITY","WETNESS" }
 local player = { getX=function() return 100.5 end, getY=function() return 100.5 end, getZ=function() return 0 end,
   getCurrentSquare=function() return cell:getGridSquare(100,100,0) end, getModData=function() return md end,
   isDead=function() return false end, getVehicle=function() return nil end, isAsleep=function() return false end,
-  getPlayerNum=function() return 0 end, getStats=function() return stats end,
+  getPlayerNum=function() return 0 end, getForwardDirectionX=function() return 1 end, getForwardDirectionY=function() return 0 end, getStats=function() return stats end,
   isRunning=function() return true end, isSprinting=function() return false end,
   getBodyDamage=function() return { getThermoregulator=function() return { getCoreCelcius=function() return 35.5 end } end } end }
 function getPlayer() return player end
@@ -68,10 +77,16 @@ function sendServerCommand() end
 
 for _, f in ipairs({ "shared/Echoes/Core.lua","shared/Echoes/WorldEvents.lua","client/Echoes/Timer.lua","client/Echoes/Sounds.lua",
   "client/Echoes/Weather.lua","client/Echoes/Acoustics.lua","client/Echoes/Body.lua","client/Echoes/Psyche.lua",
-  "client/Echoes/Phenomena.lua","client/Echoes/Director.lua","client/Echoes/RoomDecay.lua" }) do
+  "client/Echoes/Phenomena.lua","client/Echoes/Places.lua","client/Echoes/Stories.lua","client/Echoes/Senses.lua","client/Echoes/VehicleSense.lua","client/Echoes/Interaction.lua","client/Echoes/Visual.lua","client/Echoes/Director.lua","client/Echoes/RoomDecay.lua","server/Echoes/ZombieAwareness.lua" }) do
   dofile("/home/user/ECHOES/Echoes/common/media/lua/" .. f) end
 fire("OnGameStart")
 fire("EveryOneMinute"); fire("EveryTenMinutes"); fire("EveryHours")
+zresp = true; fire("EveryOneMinute")   -- zombie hears something
+zresp = false; tms = tms + 1000; fire("EveryOneMinute")  -- ...then loses it: should start a search
+Echoes.Places.mark(player, 1)
+local sq0 = cell:getGridSquare(100,100,0)
+Echoes.Interaction.listen(player, { getSquare = function() return cell:getGridSquare(104,100,0) end })
+Echoes.Stories.createLockedIn(player)
 for i = 1, 6 do Echoes.Director.evaluate(true) end
 -- advance timers
 for i = 1, 40 do tms = tms + 200; for _, f in ipairs(handlers.OnTick or {}) do f() end end

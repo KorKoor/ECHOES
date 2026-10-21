@@ -32,3 +32,15 @@ Repetir el paso 2 con: (a) sin Viewpoint, (b) Viewpoint sin shader pack, (c) con
 **Decaimiento:** en una partida con >10 días (usa Debug de Zomboid para avanzar el tiempo), entrar en habitaciones con lámparas: algunas apagadas, otras parpadean al entrar. Repetir en la misma sala: no debe cambiar más hasta cruzar 25/45 días.
 **Alarma lejana:** con `Frequency=4` esperar horas de juego: `distant alarm started at x,y`, alarma tenue direccional y, a lo largo de las horas, zombis acercándose a esa zona. Si aparece `addSound failed`, enviar el log.
 **Probe:** nuevas líneas (`room light switches`, `hydro power`, `endurance/fatigue ranges`, `running flags`, `thermoregulator core`).
+
+## Novedades v0.2.0
+Todas con Debug activado (`[Echoes][DEBUG]` en `console.txt`).
+- **Senses:** de noche, con un zombi cerca pero fuera de vista (otra habitación), a veces un sonido tenue desde su posición real (`unseen zombie cue`). Si `sounds[zombieCue] = 0 candidates`, el juego no tiene un sonido de arrastre/rozamiento con esas palabras: enviar el volcado del probe.
+- **Escuchar en la puerta:** clic derecho en una puerta cerrada → "Listen at the door"; caminar, esperar ~3 s; oír a los zombis detrás (log `listen at door: N cue(s)`). Si el menú no aparece o hay error de `ISBaseTimedAction`, enviar el log.
+- **IA:** provocar ruido para atraer zombis y esconderte; al llegar al origen y no encontrar a nadie, algunos deben seguir a otras habitaciones cercanas (`zombie searches started`). Comprobar rendimiento con una horda.
+- **Vehículo:** conducir con un zombi pegado por detrás → un golpe/arañazo tenue (`blind-spot cue`); sonidos de ECHOES más bajos dentro del coche.
+- **Mundo:** de noche, tras varias horas, `activity light at x,y` (una luz lejana encendida que luego se apaga); tiros lejanos tenues; historia `story created: locked_in` y golpes cerca de esa puerta.
+- **Goteras:** con lluvia y >25 días, en algunas salas gotear (`drip in leaky room`).
+- **Lugares cargados:** tras un pico de pánico, fenómenos que regresan allí.
+- **Visual (experimental):** activar Sandbox `Visual` y `Apparitions`; comprobar PRIMERO que el ratón sigue funcionando en menús/inventario. Entrar de un interior oscuro a la calle de día → destello breve; salir a oscuro → oscurecimiento breve; silueta fugaz en el borde (con F9 varias veces).
+- **Probe:** nuevas comprobaciones de UI, zombis, luz, vehículo y eventos.

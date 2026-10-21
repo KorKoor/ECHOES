@@ -58,6 +58,8 @@ local function availableKinds()
     if Config.isEnabled("Phenomena") and Echoes.Phenomena then
         for _, k in ipairs(Echoes.Phenomena.available()) do out[#out + 1] = k end
     end
+    if Echoes.Stories then for _, k in ipairs(Echoes.Stories.available()) do out[#out + 1] = k end end
+    if Echoes.Visual then for _, k in ipairs(Echoes.Visual.available()) do out[#out + 1] = k end end
     return out
 end
 
@@ -77,8 +79,12 @@ local function pickKind(list, pressure)
 end
 
 -- Square selection ----------------------------------------------------------------------------
-local function ringSquare(player, minD, maxD)
+local function ringSquare(player, minD, maxD, behind)
     local ang = ZombRand(360) * math.pi / 180
+    if behind then -- "a noise behind you": within 70 degrees of the direction opposite to where you face
+        local back = math.atan2(player:getForwardDirectionY(), player:getForwardDirectionX()) + math.pi
+        ang = back + (ZombRandFloat(0, 1) - 0.5) * (140 * math.pi / 180)
+    end
     local dist = minD + ZombRand(maxD - minD + 1)
     local x = math.floor(player:getX() + math.cos(ang) * dist)
     local y = math.floor(player:getY() + math.sin(ang) * dist)
@@ -105,11 +111,11 @@ local function findDoorSquare(player)
     return best
 end
 
-local function findWalkableSquare(player)
+local function findWalkableSquare(player, behind)
     local pnum = player:getPlayerNum()
     local best
     for _ = 1, 10 do
-        local sq = ringSquare(player, MIN_DIST, MAX_DIST)
+        local sq = ringSquare(player, MIN_DIST, MAX_DIST, behind)
         if sq and sq:isFree(false) then
             if not sq:isCouldSee(pnum) then return sq end
             best = best or sq
@@ -118,8 +124,10 @@ local function findWalkableSquare(player)
     return best
 end
 
--- Remembered place from a previous sound (recent, still loaded): "the same place again".
-local function callbackSquare(mem)
+-- Remembered place: a place where something happened to the player (Places) or a past phenomenon.
+local function callbackSquare(mem, player)
+    local place = Echoes.Places and Echoes.Places.pick(player, GLOBAL_COOLDOWN_HOURS)
+    if place and ZombRandFloat(0, 1) < 0.5 then return place end
     local t = nowHours()
     for i = #mem.log, 1, -1 do
         local e = mem.log[i]
@@ -135,7 +143,8 @@ end
 local function playKindAt(kind, sq, player)
     local f = Echoes.Acoustics.factor(sq, player, { maxDist = 26 })
     if f <= 0.02 then return nil end
-    return Echoes.Sounds.playAt(sq:getX() + 0.5, sq:getY() + 0.5, sq:getZ(), candidates(kind), kind.volume * f, 0.06)
+    return Echoes.Sounds.playAt(sq:getX() + 0.5, sq:getY() + 0.5, sq:getZ(), candidates(kind), kind.volume * f, 0.06,
+        kind.ambiguous)
 end
 
 local function stageFootsteps(kind, startSq, player)
@@ -204,8 +213,9 @@ function Director.evaluate(force)
         sq = kind.run(player)
         if not sq then Log.debug("could not stage " .. kind.id); return end
     else
-        remembered = (ZombRandFloat(0, 1) < CALLBACK_CHANCE) and callbackSquare(mem) or nil
-        sq = remembered or (kind.needsDoor and findDoorSquare(player) or findWalkableSquare(player))
+        remembered = (ZombRandFloat(0, 1) < CALLBACK_CHANCE) and callbackSquare(mem, player) or nil
+        local behind = (not kind.needsDoor) and ZombRandFloat(0, 1) < (0.25 + 0.35 * pressure)
+        sq = remembered or (kind.needsDoor and findDoorSquare(player) or findWalkableSquare(player, behind))
         if not sq then Log.debug("no source square for " .. kind.id); return end
         if kind.steps then
             if stageFootsteps(kind, sq, player) == 0 then Log.debug("no walkable path"); return end
