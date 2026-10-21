@@ -108,8 +108,59 @@ local function runProbe()
         return #names .. " events: " .. table.concat(names, ", ")
     end)
 
+    -- 7b. Sound inventory: which sounds does the game really have? (keyword search, first 12 per keyword)
+    check("GameSounds.isKnownSound", function()
+        local out = {}
+        for _, n in ipairs({ "DoorClose", "DoorOpen", "FootstepsIndoor", "HouseAlarm", "ZombieFootstep" }) do
+            out[#out + 1] = n .. "=" .. tostring(GameSounds.isKnownSound(n))
+        end
+        return table.concat(out, " ")
+    end)
+    check("GameSounds categories", function()
+        local cats = GameSounds.getCategories()
+        local names = {}
+        for i = 0, cats:size() - 1 do names[#names + 1] = tostring(cats:get(i)) end
+        return cats:size() .. " categories: " .. table.concat(names, ", ")
+    end)
+    check("GameSounds keyword search", function()
+        local keys = { "breath", "whisper", "murmur", "footstep", "door", "alarm", "heart", "cry", "voice" }
+        local found = {}
+        for _, k in ipairs(keys) do found[k] = {} end
+        local cats = GameSounds.getCategories()
+        for i = 0, cats:size() - 1 do
+            local list = GameSounds.getSoundsInCategory(cats:get(i))
+            for j = 0, list:size() - 1 do
+                local name = list:get(j):getName()
+                local low = string.lower(name)
+                for _, k in ipairs(keys) do
+                    if string.find(low, k, 1, true) and #found[k] < 12 then found[k][#found[k] + 1] = name end
+                end
+            end
+        end
+        for _, k in ipairs(keys) do log("sounds[" .. k .. "]: " .. table.concat(found[k], ", ")) end
+        return "done"
+    end)
+
+    -- 7c. Objects used by the world modules
+    check("ModData.getOrCreate", function() return tostring(ModData.getOrCreate("EchoesProbeData")) end)
+    check("room light switches", function()
+        local room = player:getCurrentSquare():getRoom()
+        if not room then return "not in a room" end
+        return "switches=" .. tostring(room:getLightSwitches():size()) .. " id=" .. tostring(room:getRoomDef():getID())
+    end)
+    check("hydro power", function() return tostring(getWorld():isHydroPowerOn()) end)
+    check("thermoregulator core", function()
+        return tostring(player:getBodyDamage():getThermoregulator():getCoreCelcius())
+    end)
+    check("endurance/fatigue ranges", function()
+        local e, f = CharacterStat.ENDURANCE, CharacterStat.FATIGUE
+        return "ENDURANCE " .. e:getMinimumValue() .. ".." .. e:getMaximumValue() .. "=" .. tostring(player:getStats():get(e))
+            .. " FATIGUE " .. f:getMinimumValue() .. ".." .. f:getMaximumValue() .. "=" .. tostring(player:getStats():get(f))
+    end)
+    check("running flags", function() return tostring(player:isRunning()) .. "/" .. tostring(player:isSprinting()) end)
+
     -- 8. Events we intend to use: do the Events entries exist?
-    for _, ev in ipairs({ "OnGameStart", "OnPlayerUpdate", "EveryTenMinutes", "EveryHours",
+    for _, ev in ipairs({ "OnGameStart", "OnPlayerUpdate", "EveryTenMinutes", "EveryHours", "EveryOneMinute", "OnKeyPressed",
             "OnZombieUpdate", "OnTick", "OnClientCommand", "OnServerCommand", "OnWorldSound" }) do
         check("Events." .. ev, function() return tostring(Events[ev] ~= nil) end)
     end

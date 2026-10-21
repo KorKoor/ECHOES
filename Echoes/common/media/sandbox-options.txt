@@ -12,6 +12,42 @@ option Echoes.SoundEnabled
     page = Echoes, translation = Echoes_SoundEnabled,
 }
 
+option Echoes.PhenomenaEnabled
+{
+    type = boolean, default = true,
+    page = Echoes, translation = Echoes_PhenomenaEnabled,
+}
+
+option Echoes.BodyEnabled
+{
+    type = boolean, default = true,
+    page = Echoes, translation = Echoes_BodyEnabled,
+}
+
+option Echoes.PsycheEnabled
+{
+    type = boolean, default = true,
+    page = Echoes, translation = Echoes_PsycheEnabled,
+}
+
+option Echoes.TraumaEnabled
+{
+    type = boolean, default = true,
+    page = Echoes, translation = Echoes_TraumaEnabled,
+}
+
+option Echoes.DecayEnabled
+{
+    type = boolean, default = true,
+    page = Echoes, translation = Echoes_DecayEnabled,
+}
+
+option Echoes.WorldEventsEnabled
+{
+    type = boolean, default = true,
+    page = Echoes, translation = Echoes_WorldEventsEnabled,
+}
+
 option Echoes.Frequency
 {
     type = double, min = 0.1, max = 4.0, default = 1.0,

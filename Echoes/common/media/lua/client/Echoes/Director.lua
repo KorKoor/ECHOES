@@ -1,6 +1,6 @@
--- ECHOES director (client): decides when an unexplained sound may happen and how it is staged.
--- UNTESTED prototype. Sound names and several API calls are unverified ([V] in docs/02-design.md).
--- No zombie-attracting world sound is created: sounds are only played locally by an emitter.
+-- ECHOES director (client): decides when an unexplained event may happen and how it is staged.
+-- UNTESTED prototype. Sound names are resolved against the game's real sound list (Sounds.lua).
+-- Sound kinds are only played locally by an emitter: they never attract zombies.
 
 local Log, Config = Echoes.Log, Echoes.Config
 
@@ -8,22 +8,20 @@ local Director = {}
 Echoes.Director = Director
 
 local MIN_DIST, MAX_DIST = 6, 14
-local BASE_CHANCE = 0.06            -- per evaluation (every in-game 10 minutes), before Frequency
+local BASE_CHANCE = 0.06            -- per evaluation (every in-game 10 minutes), before modifiers
 local GLOBAL_COOLDOWN_HOURS = 3.0   -- minimum in-game hours between any two phenomena
 local ZOMBIE_CLEAR_RADIUS = 14
-local CALLBACK_CHANCE = 0.30        -- chance a later phenomenon returns to a remembered place
+local CALLBACK_CHANCE = 0.30        -- chance a later sound returns to a remembered place
 local CALLBACK_WINDOW_HOURS = 36
 
--- Sound kinds. Names are candidates tried in random order until one plays. [V] names may not exist.
+-- Sound kinds. `static` names are tried first (if the game knows them); `patterns` is the fallback search.
 Director.kinds = {
-    {
-        id = "door", weight = 1.0, needsDoor = true, volume = 0.85,
-        sounds = { "DoorClose", "DoorOpen" },
-    },
-    {
-        id = "footsteps", weight = 1.4, needsWalkable = true, volume = 0.7,
-        sounds = { "FootstepsIndoor", "ZombieFootstep" }, steps = { 4, 7 }, interval = { 450, 650 },
-    },
+    { id = "door", weight = 1.0, needsDoor = true, volume = 0.85, ambiguous = true,
+      static = { "DoorClose", "DoorOpen" }, patterns = { "door" }, exclude = { "car", "vehicle", "garage", "locked" } },
+    { id = "footsteps", weight = 1.4, volume = 0.7, ambiguous = true, steps = { 4, 7 }, interval = { 450, 650 },
+      static = { "FootstepsIndoor" }, patterns = { "footstep", "step" }, exclude = { "zombie", "vehicle", "gun" } },
+    { id = "voice", weight = 0.4, volume = 0.5, ambiguous = true, optional = true,
+      static = {}, patterns = { "whisper", "murmur" }, exclude = {} },
 }
 
 -- Helpers -------------------------------------------------------------------------------------
@@ -46,50 +44,36 @@ local function zombiesNear(player, radius)
     return false
 end
 
-local function sanityFactor(player)
-    -- Lower sanity makes phenomena slightly more likely. Never penalises the player mechanically.
-    local ok, v = pcall(function() return player:getStats():get(CharacterStat.SANITY) end)
-    if not ok or type(v) ~= "number" then return 1.0 end
-    return 1.0 + (1.0 - v) * 0.5 -- assumes SANITY in 0..1 (1 = healthy) [V]
+local function candidates(kind)
+    return Echoes.Sounds.resolve(kind.id, kind.static, kind.patterns, kind.exclude)
 end
 
-local function pickKind(list)
+-- All kinds currently usable (sound kinds need at least one resolvable sound).
+local function availableKinds()
+    local out = {}
+    for _, k in ipairs(Director.kinds) do
+        if #candidates(k) > 0 then out[#out + 1] = k
+        elseif not k.optional then Log.debug("no sound for kind " .. k.id) end
+    end
+    if Config.isEnabled("Phenomena") and Echoes.Phenomena then
+        for _, k in ipairs(Echoes.Phenomena.available()) do out[#out + 1] = k end
+    end
+    return out
+end
+
+local function pickKind(list, pressure)
     local total = 0
-    for _, k in ipairs(list) do total = total + k.weight end
+    local w = {}
+    for i, k in ipairs(list) do
+        w[i] = k.weight * (k.ambiguous and (1.0 + pressure) or 1.0)
+        total = total + w[i]
+    end
     local r = ZombRandFloat(0, total)
-    for _, k in ipairs(list) do
-        r = r - k.weight
+    for i, k in ipairs(list) do
+        r = r - w[i]
         if r <= 0 then return k end
     end
     return list[#list]
-end
-
-local function shuffled(t)
-    local o = {}
-    for i, v in ipairs(t) do o[i] = v end
-    for i = #o, 2, -1 do
-        local j = 1 + ZombRand(i)
-        o[i], o[j] = o[j], o[i]
-    end
-    return o
-end
-
--- Plays the first working candidate at the square with the given volume factor. Returns name or nil.
-local function playAt(sq, sounds, volume)
-    local em = getWorld():getFreeEmitter(sq:getX() + 0.5, sq:getY() + 0.5, sq:getZ())
-    if not em then return nil end
-    for _, name in ipairs(shuffled(sounds)) do
-        local ok, handle = pcall(function() return em:playSound(name) end)
-        if ok then
-            if handle and handle ~= 0 then
-                pcall(function() em:setVolume(handle, volume) end)
-                pcall(function() em:setPitch(handle, 0.94 + ZombRandFloat(0, 0.12)) end)
-            end
-            return name
-        end
-        Log.debug("playSound failed for " .. name)
-    end
-    return nil
 end
 
 -- Square selection ----------------------------------------------------------------------------
@@ -134,12 +118,12 @@ local function findWalkableSquare(player)
     return best
 end
 
--- Remembered place from a previous phenomenon (recent, still loaded). "The same place again."
+-- Remembered place from a previous sound (recent, still loaded): "the same place again".
 local function callbackSquare(mem)
     local t = nowHours()
     for i = #mem.log, 1, -1 do
         local e = mem.log[i]
-        if t - e.t <= CALLBACK_WINDOW_HOURS and t - e.t > GLOBAL_COOLDOWN_HOURS then
+        if e.sq and t - e.t <= CALLBACK_WINDOW_HOURS and t - e.t > GLOBAL_COOLDOWN_HOURS then
             local sq = getCell():getGridSquare(e.x, e.y, e.z or 0)
             if sq then return sq end
         end
@@ -147,51 +131,28 @@ local function callbackSquare(mem)
     return nil
 end
 
--- Staged playback ------------------------------------------------------------------------------
--- A tiny queue so footsteps can be spread over time. The tick handler is registered only while
--- the queue is non-empty, so there is no per-frame cost otherwise.
-local queue, ticking = {}, false
-
-local function onTick()
-    local player = getPlayer()
-    if not player or #queue == 0 then
-        Events.OnTick.Remove(onTick)
-        ticking = false
-        queue = {}
-        return
-    end
-    local t = getTimestampMs()
-    for i = #queue, 1, -1 do
-        local e = queue[i]
-        if t >= e.at then
-            table.remove(queue, i)
-            local f = Echoes.Acoustics.factor(e.sq, player, { maxDist = 24 })
-            if f > 0.02 then Echoes.safe("staged play", playAt, e.sq, e.sounds, e.volume * f) end
-        end
-    end
-end
-
-local function schedule(entry)
-    queue[#queue + 1] = entry
-    if not ticking then
-        ticking = true
-        Events.OnTick.Add(onTick)
-    end
+-- Staged playback -----------------------------------------------------------------------------
+local function playKindAt(kind, sq, player)
+    local f = Echoes.Acoustics.factor(sq, player, { maxDist = 26 })
+    if f <= 0.02 then return nil end
+    return Echoes.Sounds.playAt(sq:getX() + 0.5, sq:getY() + 0.5, sq:getZ(), candidates(kind), kind.volume * f, 0.06)
 end
 
 local function stageFootsteps(kind, startSq, player)
     local ang = ZombRand(360) * math.pi / 180
     local n = kind.steps[1] + ZombRand(kind.steps[2] - kind.steps[1] + 1)
-    local at = getTimestampMs()
     local cell = getCell()
     local x0, y0, z = startSq:getX() + 0.5, startSq:getY() + 0.5, startSq:getZ()
-    local placed = 0
+    local delay, placed = 0, 0
     for k = 0, n - 1 do
         local sq = cell:getGridSquare(math.floor(x0 + math.cos(ang) * 0.9 * k),
             math.floor(y0 + math.sin(ang) * 0.9 * k), z)
         if not sq or not sq:isFree(false) then break end
-        schedule({ at = at, sq = sq, sounds = kind.sounds, volume = kind.volume })
-        at = at + kind.interval[1] + ZombRand(kind.interval[2] - kind.interval[1] + 1)
+        Echoes.Timer.after(delay, function()
+            local p = getPlayer()
+            if p then playKindAt(kind, sq, p) end
+        end)
+        delay = delay + kind.interval[1] + ZombRand(kind.interval[2] - kind.interval[1] + 1)
         placed = placed + 1
     end
     return placed
@@ -204,14 +165,14 @@ local function suitable(player)
     local indoor = not sq:isOutside()
     local night = getClimateManager():getNightStrength() > 0.5
     if not (night or indoor) then return false end
-    if player:isDead() or player:getVehicle() then return false end
+    if player:isDead() or player:getVehicle() or player:isAsleep() then return false end
     if zombiesNear(player, ZOMBIE_CLEAR_RADIUS) then return false end
     return true, indoor, night
 end
 
 -- force=true skips chance and cooldown (debug only).
 function Director.evaluate(force)
-    if not Config.isEnabled("Sound") then return end
+    if not Config.isEnabled() then return end
     local player = getPlayer()
     if not player then return end
 
@@ -222,36 +183,44 @@ function Director.evaluate(force)
     local ok, indoor, night = suitable(player)
     if not ok then Log.debug("conditions not suitable"); return end
 
-    local chance = BASE_CHANCE * Config.get("Frequency") * sanityFactor(player)
+    local pressure = Echoes.Psyche and Echoes.Psyche.pressure or 0
+    local chance = BASE_CHANCE * Config.get("Frequency") * (1.0 + pressure)
     if indoor and night then chance = chance * 1.5 end
     if not force and ZombRandFloat(0, 1) > chance then return end
 
-    -- Prefer returning to a remembered place now and then; otherwise pick a fresh source.
-    local remembered = (ZombRandFloat(0, 1) < CALLBACK_CHANCE) and callbackSquare(mem) or nil
-    local kind = pickKind(Director.kinds)
-    local sq = remembered
-    if not sq then
-        sq = kind.needsDoor and findDoorSquare(player) or findWalkableSquare(player)
+    local kinds = availableKinds()
+    -- Sound kinds respect their own switch; custom kinds are gated in availableKinds().
+    if not Config.isEnabled("Sound") then
+        local filtered = {}
+        for _, k in ipairs(kinds) do if k.run then filtered[#filtered + 1] = k end end
+        kinds = filtered
     end
-    if not sq then Log.debug("no source square for " .. kind.id); return end
+    if #kinds == 0 then Log.debug("no phenomenon available"); return end
 
-    if kind.id == "footsteps" then
-        if stageFootsteps(kind, sq, player) == 0 then Log.debug("no walkable path"); return end
+    local kind = pickKind(kinds, pressure)
+    local sq, remembered
+
+    if kind.run then
+        sq = kind.run(player)
+        if not sq then Log.debug("could not stage " .. kind.id); return end
     else
-        local f = Echoes.Acoustics.factor(sq, player, { maxDist = 26 })
-        if f <= 0.02 then Log.debug("sound inaudible (factor " .. f .. ")"); return end
-        if not playAt(sq, kind.sounds, kind.volume * f) then
-            Log.warn("no candidate sound could be played")
+        remembered = (ZombRandFloat(0, 1) < CALLBACK_CHANCE) and callbackSquare(mem) or nil
+        sq = remembered or (kind.needsDoor and findDoorSquare(player) or findWalkableSquare(player))
+        if not sq then Log.debug("no source square for " .. kind.id); return end
+        if kind.steps then
+            if stageFootsteps(kind, sq, player) == 0 then Log.debug("no walkable path"); return end
+        elseif not playKindAt(kind, sq, player) then
+            Log.debug("sound inaudible or could not be played: " .. kind.id)
             return
         end
     end
 
     mem.last = t
-    mem.log[#mem.log + 1] = { id = kind.id, x = sq:getX(), y = sq:getY(), z = sq:getZ(), t = t,
+    mem.log[#mem.log + 1] = { id = kind.id, sq = not kind.run, x = sq:getX(), y = sq:getY(), z = sq:getZ(), t = t,
         callback = remembered ~= nil }
     if #mem.log > 20 then table.remove(mem.log, 1) end
     Log.info("phenomenon fired: " .. kind.id .. " at " .. sq:getX() .. "," .. sq:getY()
-        .. (remembered and " (callback)" or ""))
+        .. (remembered and " (callback)" or "") .. string.format(" pressure=%.2f", pressure))
 end
 
 Events.EveryTenMinutes.Add(function() Echoes.safe("Director.evaluate", Director.evaluate, false) end)
@@ -264,6 +233,5 @@ Events.OnKeyPressed.Add(function(key)
 end)
 
 Events.OnGameStart.Add(function()
-    queue = {}
     Log.info("v" .. Echoes.VERSION .. " started. Viewpoint=" .. tostring(getActivatedMods():contains("Viewpoint")))
 end)

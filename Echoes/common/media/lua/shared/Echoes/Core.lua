@@ -2,7 +2,7 @@
 -- UNTESTED prototype: APIs marked [V] in docs/02-design.md still need in-game verification.
 
 Echoes = Echoes or {}
-Echoes.VERSION = "0.0.2"
+Echoes.VERSION = "0.1.0"
 
 -- Logging ---------------------------------------------------------------------------------
 Echoes.Log = {}
@@ -24,6 +24,12 @@ Echoes.Config = {}
 local defaults = {
     Enabled = true,
     SoundEnabled = true,
+    PhenomenaEnabled = true,
+    BodyEnabled = true,
+    PsycheEnabled = true,
+    TraumaEnabled = true,
+    DecayEnabled = true,
+    WorldEventsEnabled = true,
     Frequency = 1.0,
     Debug = false,
 }
@@ -49,4 +55,24 @@ function Echoes.safe(label, fn, ...)
         return nil
     end
     return res
+end
+
+-- Normalised (0..1) value of a CharacterStat for a character, using the stat's own min/max.
+-- Returns nil if the stat or the call is unavailable (B42 CharacterStat registry, unverified from Lua).
+function Echoes.statNorm(character, key)
+    local ok, v = pcall(function()
+        local stat = CharacterStat[key]
+        local val = character:getStats():get(stat)
+        local mn, mx = stat:getMinimumValue(), stat:getMaximumValue()
+        if mx <= mn then return nil end
+        return (val - mn) / (mx - mn)
+    end)
+    if ok and type(v) == "number" then return v end
+    return nil
+end
+
+function Echoes.clamp(v, lo, hi)
+    if v < lo then return lo end
+    if v > hi then return hi end
+    return v
 end

@@ -23,3 +23,12 @@ Repetir el paso 2 con: (a) sin Viewpoint, (b) Viewpoint sin shader pack, (c) con
 - **Acústica:** detrás de una pared o con puerta cerrada el sonido debe oírse más bajo (`Acoustics.factor`); en otro piso, aún más; con lluvia fuerte en exterior, más bajo.
 - **Eco de lugar:** con varias activaciones (F9) alguna debe marcar `(callback)` y repetirse en un lugar anterior (tras >3 h de juego del anterior).
 - Hipótesis nuevas [V]: `emitter:setVolume(handle, v)`, `setPitch`, `IsoGridSquare:isBlockedTo`, `getDoor(bool)`, `isFree(false)`, `isCouldSee`.
+
+## Novedades v0.1.0 a comprobar (además de lo anterior)
+**Sonidos:** los candidatos ya se filtran con `GameSounds.isKnownSound`; si hay `sound discovery unavailable` en el log, avisar. El probe vuelca palabras clave de sonidos reales (`sounds[breath]`, `sounds[footstep]`, `sounds[alarm]`…): enviar esas líneas para fijar nombres.
+**Cuerpo:** correr hasta agotarte → respiración agitada que se calma al descansar (activar Debug: `breathing:` en el log). Con pánico alto, `Body` reduce un poco el volumen de los sonidos de ECHOES.
+**Psicología:** con Debug aparece `pressure x.xx (...)` cada 10 min de juego; subir con fatiga/estrés/noche/frío.
+**Fenómenos:** F9 repetidamente → `door_ajar` (una puerta cerrada y fuera de vista aparece abierta) y `light_flicker` (lámpara cercana parpadea y vuelve o queda apagada). Solo SP/host.
+**Decaimiento:** en una partida con >10 días (usa Debug de Zomboid para avanzar el tiempo), entrar en habitaciones con lámparas: algunas apagadas, otras parpadean al entrar. Repetir en la misma sala: no debe cambiar más hasta cruzar 25/45 días.
+**Alarma lejana:** con `Frequency=4` esperar horas de juego: `distant alarm started at x,y`, alarma tenue direccional y, a lo largo de las horas, zombis acercándose a esa zona. Si aparece `addSound failed`, enviar el log.
+**Probe:** nuevas líneas (`room light switches`, `hydro power`, `endurance/fatigue ranges`, `running flags`, `thermoregulator core`).

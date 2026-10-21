@@ -2,6 +2,12 @@ Sandbox_EN = {
     Sandbox_Echoes = "ECHOES",
     Sandbox_Echoes_Enabled = "Enable ECHOES",
     Sandbox_Echoes_SoundEnabled = "Unexplained sounds",
+    Sandbox_Echoes_PhenomenaEnabled = "Environmental phenomena (doors, lights)",
+    Sandbox_Echoes_BodyEnabled = "Body state (breathing, exertion)",
+    Sandbox_Echoes_PsycheEnabled = "Isolation and fatigue influence phenomena",
+    Sandbox_Echoes_TraumaEnabled = "Traumatic experiences leave a lasting mark",
+    Sandbox_Echoes_DecayEnabled = "Gradual electrical decay of rooms",
+    Sandbox_Echoes_WorldEventsEnabled = "Distant world events (alarms)",
     Sandbox_Echoes_Frequency = "Phenomena frequency",
     Sandbox_Echoes_Debug = "Debug logging",
 }

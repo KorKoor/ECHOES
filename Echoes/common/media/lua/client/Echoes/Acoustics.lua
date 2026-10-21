@@ -69,9 +69,9 @@ function Acoustics.factor(srcSq, player, opts)
 
     if srcSq:isOutside() ~= plSq:isOutside() then f = f * (1.0 - EXTERIOR_LOSS) end
 
-    -- Rain and wind mask quiet sounds, mostly for listeners outdoors.
-    local ok2, rain = pcall(function() return getClimateManager():getRainIntensity() end)
-    if ok2 and type(rain) == "number" and plSq:isOutside() then f = f * (1.0 - 0.5 * rain) end
+    -- Rain and wind mask quiet sounds; panic or breathlessness dulls the listener a little.
+    if Echoes.Weather then f = f * Echoes.Weather.hearingMultiplier(plSq) end
+    if Echoes.Body and Echoes.Config.isEnabled("Body") then f = f * Echoes.Body.state.hearing end
 
     return math.max(0.0, math.min(1.0, f))
 end
