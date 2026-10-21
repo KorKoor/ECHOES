@@ -44,3 +44,9 @@ Todas con Debug activado (`[Echoes][DEBUG]` en `console.txt`).
 - **Lugares cargados:** tras un pico de pánico, fenómenos que regresan allí.
 - **Visual (experimental):** activar Sandbox `Visual` y `Apparitions`; comprobar PRIMERO que el ratón sigue funcionando en menús/inventario. Entrar de un interior oscuro a la calle de día → destello breve; salir a oscuro → oscurecimiento breve; silueta fugaz en el borde (con F9 varias veces).
 - **Probe:** nuevas comprobaciones de UI, zombis, luz, vehículo y eventos.
+
+## Reconocimiento del motor (nivel Java) — hacer también mañana
+1. Lanzar el juego con ZombieBuddy en modo `experimental` (ver `docs/05-java-tier.md`).
+2. Con `EchoesProbe` activo, entrar en partida con Viewpoint instalado; esperar ~10 s (o F10).
+3. Enviar todas las líneas `[EchoesInv]` de `console.txt`.
+4. Enviar el listado de archivos de la carpeta del mod Viewpoint (workshop 3809306528) en tu disco.
