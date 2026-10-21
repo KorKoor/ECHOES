@@ -102,7 +102,7 @@ local function findDoorSquare(player)
     for _ = 1, 60 do
         local sq = cell:getGridSquare(px + ZombRand(-MAX_DIST, MAX_DIST + 1),
             py + ZombRand(-MAX_DIST, MAX_DIST + 1), pz)
-        if sq and (sq:getDoor(true) or sq:getDoor(false)) then
+        if sq and Echoes.doorAt(sq) then
             local dx, dy = sq:getX() - px, sq:getY() - py
             local d2 = dx * dx + dy * dy
             if d2 >= MIN_DIST * MIN_DIST and d2 <= MAX_DIST * MAX_DIST then
@@ -133,13 +133,13 @@ local function findDoorNear(sq, radius)
     local sx, sy, sz = sq:getX(), sq:getY(), sq:getZ()
     for _ = 1, 40 do
         local c = cell:getGridSquare(sx + ZombRand(-radius, radius + 1), sy + ZombRand(-radius, radius + 1), sz)
-        if c and (c:getDoor(true) or c:getDoor(false)) then return c end
+        if c and Echoes.doorAt(c) then return c end
     end
     return nil
 end
 
 -- Remembered square from a past phenomenon (haunted Places are handled in evaluate).
-local function callbackSquare(mem, player)
+local function callbackSquare(mem)
     local t = nowHours()
     for i = #mem.log, 1, -1 do
         local e = mem.log[i]
@@ -161,6 +161,7 @@ end
 
 local function stageFootsteps(kind, startSq, player, stage)
     stage = stage or 0
+    if Echoes.Acoustics.factor(startSq, player, { maxDist = 26 }) <= 0.02 then return 0 end -- nobody would hear it
     local ang = ZombRand(360) * math.pi / 180
     if stage >= 3 then -- late stages: the steps walk toward you
         ang = Echoes.atan2(player:getY() - startSq:getY(), player:getX() - startSq:getX())
@@ -244,7 +245,7 @@ function Director.evaluate(force)
         if not sq then sq = kind.run(player, nil) end -- nothing suitable at the place: act near the player instead
         if not sq then Log.debug("could not stage " .. kind.id); return end
     else
-        remembered = placeSq or ((ZombRandFloat(0, 1) < CALLBACK_CHANCE) and callbackSquare(mem, player) or nil)
+        remembered = placeSq or ((ZombRandFloat(0, 1) < CALLBACK_CHANCE) and callbackSquare(mem) or nil)
         usedPlace = placeSq ~= nil
         local behind = (not kind.needsDoor) and ZombRandFloat(0, 1) < (0.25 + 0.35 * pressure)
         if remembered and kind.needsDoor then -- a door sound needs a door: look near the remembered spot

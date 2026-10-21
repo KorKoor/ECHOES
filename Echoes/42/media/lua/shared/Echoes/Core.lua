@@ -178,3 +178,8 @@ function Echoes.isInteriorDoor(door)
     end)
     return ok and res or false
 end
+
+-- The door on a square (north or west edge), or nil.
+function Echoes.doorAt(sq)
+    return sq:getDoor(true) or sq:getDoor(false)
+end

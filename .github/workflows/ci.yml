@@ -26,7 +26,7 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
-      - name: Build EchoesEngine against stubs and run self-tests
-        run: ./engine/build.sh
       - name: Committed jar must match the committed sources
         run: ./scripts/check_jar_fresh.sh
+      - name: Build EchoesEngine against stubs and run self-tests
+        run: ./engine/build.sh

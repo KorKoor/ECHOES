@@ -4,4 +4,5 @@ description=Optional Java layer for ECHOES. Requires ZombieBuddy. Makes zombie h
 require=\ZombieBuddy
 javaJarFile=media/java/EchoesEngine.jar
 javaPkgName=com.echoes.engine
+ZBVersionMin=2.3.0
 versionMin=42.20.0

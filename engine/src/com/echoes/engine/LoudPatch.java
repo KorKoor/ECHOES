@@ -1,8 +1,6 @@
-package com.echoes.engine.patches;
+package com.echoes.engine;
 
-import com.echoes.engine.LoudLogic;
-
-import me.zed_0xff.zombie_buddy.annotations.Patch;
+import me.zed_0xff.zombie_buddy.Patch;
 
 /**
  * zombie.WorldSoundManager#addSound(Object source, int x, int y, int z, int radius, int volume, ...): every overload

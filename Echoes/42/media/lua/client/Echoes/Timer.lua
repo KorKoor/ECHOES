@@ -15,17 +15,19 @@ local function onTick()
         return
     end
     local t = getTimestampMs()
-    for i = #pending, 1, -1 do
-        local e = pending[i]
-        if e and t >= e.at then
-            table.remove(pending, i)
-            Echoes.safe("Timer", e.fn)
-        end
+    local due, rest = {}, {}
+    for _, e in ipairs(pending) do
+        if t >= e.at then due[#due + 1] = e else rest[#rest + 1] = e end
     end
+    pending = rest
+    table.sort(due, function(a, b) if a.at ~= b.at then return a.at < b.at end return a.seq < b.seq end)
+    for _, e in ipairs(due) do Echoes.safe("Timer", e.fn) end -- oldest first, even after a long frame hitch
 end
 
+local seq = 0
 function Timer.after(ms, fn)
-    pending[#pending + 1] = { at = getTimestampMs() + ms, fn = fn }
+    seq = seq + 1
+    pending[#pending + 1] = { at = getTimestampMs() + ms, fn = fn, seq = seq }
     if not ticking then
         ticking = true
         Events.OnTick.Add(onTick)
@@ -36,4 +38,5 @@ function Timer.clear()
     pending = {}
 end
 
-Events.OnGameStart.Add(Timer.clear)
+-- (No OnGameStart clear: handler order between modules is not guaranteed, and a clear could wipe timers another
+-- module started in its own OnGameStart. Modules that run self-rescheduling chains use a generation token instead.)

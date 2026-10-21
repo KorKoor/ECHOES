@@ -131,8 +131,35 @@ public class SelfTest {
         check("loud: quiet noise ignored", LoudLogic.msSince(2000) == -1);
         LoudLogic.record(80, 5000);
         check("loud: gunshot recorded (" + LoudLogic.msSince(7500) + " ms ago)", LoudLogic.msSince(7500) == 2500 && LoudLogic.radius() == 80);
+        long before = Stats.loudEvents.get();
+        LoudLogic.record(90, 7600);
+        LoudLogic.record(90, 7650); // chained overload of the same shot
+        check("loud: chained overloads count as one event", Stats.loudEvents.get() - before == 1);
+        LoudLogic.reset();
+        LoudLogic.record(80, 5000);
         LoudLogic.observe("not a player", 90);
         check("loud: non-player source never throws or records", LoudLogic.msSince(7500) == 2500);
+
+        // ZombieBuddy only installs @Patch classes whose package is EXACTLY mod.info's javaPkgName (silent drop otherwise).
+        java.io.File dir = new java.io.File("engine/build/classes");
+        if (!dir.isDirectory()) dir = new java.io.File("build/classes");
+        int patchClasses = 0;
+        boolean packageOk = true;
+        java.util.ArrayDeque<java.io.File> stack = new java.util.ArrayDeque<>();
+        stack.push(dir);
+        while (!stack.isEmpty()) {
+            java.io.File f = stack.pop();
+            if (f.isDirectory()) { for (java.io.File c : f.listFiles()) stack.push(c); continue; }
+            if (!f.getName().endsWith(".class")) continue;
+            String rel = dir.toPath().relativize(f.toPath()).toString().replace(java.io.File.separatorChar, '.');
+            String cn = rel.substring(0, rel.length() - ".class".length());
+            Class<?> k = Class.forName(cn);
+            if (k.getAnnotation(me.zed_0xff.zombie_buddy.Patch.class) != null) {
+                patchClasses++;
+                if (!k.getPackage().getName().equals("com.echoes.engine")) { packageOk = false; System.out.println("  wrong package: " + cn); }
+            }
+        }
+        check("every @Patch class is in the exact mod package (" + patchClasses + " found)", patchClasses == 4 && packageOk);
 
         System.out.println(Stats.summary());
         System.out.println(failures == 0 ? "ALL PASSED" : failures + " FAILED");

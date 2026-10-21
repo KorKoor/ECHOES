@@ -18,11 +18,15 @@ public final class LoudLogic {
     public static volatile int loudRadius = 35;
 
     /** Pure bookkeeping, used by tests and by observe(). */
+    /** addSound overloads delegate to each other, so one gunshot can arrive several times within a few ms. */
+    static final int DEDUPE_MS = 250;
+
     public static void record(int radius, long nowMs) {
         if (radius < loudRadius) return;
+        boolean duplicate = lastLoudAtMs >= 0 && nowMs - lastLoudAtMs < DEDUPE_MS;
         lastLoudAtMs = nowMs;
-        lastLoudRadius = radius;
-        Stats.loudEvents.incrementAndGet();
+        lastLoudRadius = Math.max(duplicate ? lastLoudRadius : 0, radius);
+        if (!duplicate) Stats.loudEvents.incrementAndGet();
     }
 
     public static long msSince(long nowMs) {

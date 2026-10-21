@@ -20,6 +20,13 @@ function Interaction.listen(player, door)
     if not sq then return 0 end
     local cell = getCell()
     local list = cell:getZombieList()
+    local opposite = door:getOppositeSquare()
+    if not opposite then return 0 end
+    -- "far" = the door's side that is not the player's side
+    local px, py = player:getX(), player:getY()
+    local function d2(a) local dx, dy = px - (a:getX() + 0.5), py - (a:getY() + 0.5); return dx * dx + dy * dy end
+    local far, near = opposite, sq
+    if d2(opposite) < d2(sq) then far, near = sq, opposite end
     local myRoom = player:getCurrentSquare() and player:getCurrentSquare():getRoom()
     local names = Echoes.Sounds.resolve("zombieCue", {}, { "shuffle", "drag", "scrape" }, { "attack", "bite", "hit" })
     local heard, delay = 0, 0
@@ -29,7 +36,11 @@ function Interaction.listen(player, door)
         if dx * dx + dy * dy <= RANGE * RANGE and math.abs(z:getZ() - sq:getZ()) < 1.0 then
             local zsq = z:getCurrentSquare()
             local sameRoom = zsq and myRoom and zsq:getRoom() == myRoom
-            if zsq and not sameRoom then
+            -- only zombies nearer to the far side of the door than to the player's side count as "behind it"
+            local zx0, zy0 = z:getX(), z:getY()
+            local dFar = (zx0 - (far:getX() + 0.5)) ^ 2 + (zy0 - (far:getY() + 0.5)) ^ 2
+            local dNear = (zx0 - (near:getX() + 0.5)) ^ 2 + (zy0 - (near:getY() + 0.5)) ^ 2
+            if zsq and not sameRoom and dFar < dNear then
                 local f = Echoes.Acoustics.factor(zsq, player, { maxDist = RANGE + 4 })
                 if f > 0.05 and heard < 4 then
                     local zx, zy, zz = z:getX(), z:getY(), z:getZ()

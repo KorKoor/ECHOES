@@ -1,8 +1,6 @@
-package com.echoes.engine.patches;
+package com.echoes.engine;
 
-import com.echoes.engine.VisionLogic;
-
-import me.zed_0xff.zombie_buddy.annotations.Patch;
+import me.zed_0xff.zombie_buddy.Patch;
 
 /** zombie.characters.IsoZombie#spotted(IsoMovingObject, boolean) -> void. Returning true skips the original. */
 @Patch(className = "zombie.characters.IsoZombie", methodName = "spotted")

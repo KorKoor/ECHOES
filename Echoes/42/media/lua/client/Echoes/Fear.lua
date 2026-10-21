@@ -14,6 +14,7 @@ Fear.level = 0.0
 Fear.lastBeat = 0       -- ms timestamp of the last heartbeat (for visual pulse)
 local shockValue = 0.0
 local beating = false
+local chainGen = 0
 
 -- Called by the Director when something unexplained happens.
 function Fear.shock(v)
@@ -40,18 +41,19 @@ local function compute(player)
     shockValue = shockValue * 0.6
 end
 
-local function beat()
+local function beat(gen)
+    if gen ~= chainGen then return end -- stale chain from a previous game
     local player = getPlayer()
     if not Config.isEnabled("Fear") or Fear.level < 0.3 or not player or player:isDead() then
         beating = false -- also stops the chain when the player dies
         return
     end
-    if player then
+    Echoes.safe("Fear.beat", function() -- a failure here must not kill the chain
         local names = Echoes.Sounds.resolve("heartbeat", {}, { "heartbeat", "heart_beat", "heartbeats" }, {})
-        Echoes.Sounds.playAt(player:getX(), player:getY(), player:getZ(), names, 0.15 + 0.45 * Fear.level, 0.02)
+        Echoes.Sounds.playAt(player:getX(), player:getY(), player:getZ(), names, 0.15 + 0.45 * Fear.level, 0.02, false, true)
         Fear.lastBeat = getTimestampMs()
-    end
-    Echoes.Timer.after(math.floor(1150 - 650 * Fear.level), beat)
+    end)
+    Echoes.Timer.after(math.floor(1150 - 650 * Fear.level), function() beat(gen) end)
 end
 
 Events.OnGameStart.Add(function()
@@ -59,6 +61,7 @@ Events.OnGameStart.Add(function()
     Fear.lastBeat = 0
     shockValue = 0.0
     beating = false
+    chainGen = chainGen + 1
 end)
 
 Events.EveryOneMinute.Add(function()
@@ -69,6 +72,6 @@ Events.EveryOneMinute.Add(function()
     if Fear.level >= 0.35 and not beating then
         beating = true
         Log.debug(string.format("fear %.2f: heartbeat starts", Fear.level))
-        beat()
+        beat(chainGen)
     end
 end)

@@ -38,6 +38,15 @@ end
 
 local tickErrors = 0
 
+local function resetTripping()
+    local player = getPlayer()
+    if player then
+        local stats = player:getStats()
+        pcall(function() stats:setTrippingRotAngle(0) end)
+        pcall(function() stats:setTripping(false) end)
+    end
+end
+
 local function onTick()
     local player = getPlayer()
     if not player then return end
@@ -59,6 +68,7 @@ local function onTick()
             Events.OnTick.Remove(onTick)
             active = false
             disabled = true
+            resetTripping() -- never leave the character stuck in the game's "tripping" state
         end
     else
         tickErrors = 0
@@ -101,6 +111,7 @@ Events.OnGameStart.Add(function()
         active = false
         Events.OnTick.Remove(onTick)
     end
+    resetTripping()
 end)
 
 Events.EveryOneMinute.Add(function()

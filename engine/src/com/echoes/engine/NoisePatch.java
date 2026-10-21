@@ -1,8 +1,6 @@
-package com.echoes.engine.patches;
+package com.echoes.engine;
 
-import com.echoes.engine.NoiseLogic;
-
-import me.zed_0xff.zombie_buddy.annotations.Patch;
+import me.zed_0xff.zombie_buddy.Patch;
 
 /** zombie.characters.IsoPlayer#addWorldSoundUnlessInvisible(int radius, int volume, boolean stressHumans). */
 @Patch(className = "zombie.characters.IsoPlayer", methodName = "addWorldSoundUnlessInvisible")

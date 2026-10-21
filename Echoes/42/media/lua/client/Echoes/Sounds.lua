@@ -11,6 +11,12 @@ local knownCache, allNames, resolved = {}, nil, {}
 local discoveryFailedAt = nil
 local RETRY_MS = 60000
 
+-- A looping sound never frees its emitter (we do not keep handles to stop it), so such sounds are never used.
+local function isLooping(name)
+    local ok, res = pcall(function() return GameSounds.getSound(name):isLooped() end)
+    return ok and res == true
+end
+
 -- true / false, or nil when the check itself is unavailable.
 function Sounds.known(name)
     if knownCache[name] ~= nil then return knownCache[name] end
@@ -33,7 +39,9 @@ local function loadAll()
         for i = 0, cats:size() - 1 do
             local list = GameSounds.getSoundsInCategory(cats:get(i))
             for j = 0, list:size() - 1 do
-                names[#names + 1] = list:get(j):getName()
+                local gs = list:get(j)
+                local okL, looped = pcall(function() return gs:isLooped() end)
+                if not (okL and looped == true) then names[#names + 1] = gs:getName() end
             end
         end
     end)
@@ -75,7 +83,7 @@ function Sounds.resolve(key, static, patterns, exclude)
     if resolved[cacheKey] then return resolved[cacheKey] end
     local out = {}
     for _, n in ipairs(static or {}) do
-        if Sounds.known(n) ~= false then out[#out + 1] = n end
+        if Sounds.known(n) ~= false and not isLooping(n) then out[#out + 1] = n end
     end
     if #out == 0 and patterns then out = Sounds.discover(patterns, exclude) end
     if #out > 0 or allNames then resolved[cacheKey] = out end
@@ -85,9 +93,12 @@ end
 
 -- Plays one of `names` (random order, up to 3 tries) at a world position. Returns the name that actually played, or
 -- nil. A handle of 0 from the emitter means "nothing started" and counts as a failure.
-function Sounds.playAt(x, y, z, names, volume, pitchJitter, uncertain)
+-- Sounds from the world are scaled by the player's current hearing (deafness after gunfire, panic); `internal`
+-- sounds (your own breathing, heartbeat, ringing) are not.
+function Sounds.playAt(x, y, z, names, volume, pitchJitter, uncertain, internal)
     if not names or #names == 0 then return nil end
     if uncertain and Echoes.Senses then x, y, z = Echoes.Senses.uncertain(x, y, z) end
+    if not internal and Echoes.Body then volume = (volume or 1.0) * Echoes.Body.hearingNow() end
     local em = getWorld():getFreeEmitter(x, y, z)
     if not em then return nil end
     local tries = math.min(3, #names)

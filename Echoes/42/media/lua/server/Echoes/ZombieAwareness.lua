@@ -69,3 +69,5 @@ Events.EveryOneMinute.Add(function()
     if not Echoes.throttle("ZombieAwareness", MIN_INTERVAL_MS) then return end
     Echoes.safe("ZombieAwareness.tick", tick)
 end)
+
+Events.OnGameStart.Add(function() ZU.resetCache() end)

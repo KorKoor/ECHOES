@@ -28,7 +28,7 @@ function Stories.createLockedIn(player)
     for _ = 1, 80 do
         local sq = cell:getGridSquare(px + ZombRand(-14, 15), py + ZombRand(-14, 15), pz)
         if sq and sq:getRoom() then
-            local d = sq:getDoor(true) or sq:getDoor(false)
+            local d = Echoes.doorAt(sq)
             local dx, dy = sq:getX() - px, sq:getY() - py
             if d and dx * dx + dy * dy >= 49 and not sq:isCouldSee(pnum)
                 and not d:IsOpen() and not d:isLocked() and not d:isBarricaded()
@@ -48,7 +48,7 @@ end
 local function storyDoor(s)
     local sq = getCell():getGridSquare(s.x, s.y, s.z)
     if not sq then return nil, false end
-    return sq:getDoor(true) or sq:getDoor(false), true
+    return Echoes.doorAt(sq), true
 end
 
 local function update(player)
@@ -58,7 +58,10 @@ local function update(player)
         local s = list[i]
         local door, loaded = storyDoor(s)
         if loaded and (not door or not door:isLocked() or door:IsOpen()) then table.remove(list, i)
-        elseif s.knocks >= 12 then table.remove(list, i) end
+        elseif s.knocks >= 12 then
+            if door then pcall(function() door:setLocked(false) end) end -- the story ends: never leave a door locked forever
+            table.remove(list, i)
+        end
     end
     for _, s in ipairs(list) do
         if s.kind == "locked_in" and s.knocks < 12 and math.abs(s.z - player:getZ()) < 1 then

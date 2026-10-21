@@ -56,7 +56,7 @@ local function findLampNear(player, minD, maxD)
         local dist = minD + ZombRand(maxD - minD + 1)
         local sq = cell:getGridSquare(math.floor(player:getX() + math.cos(ang) * dist),
             math.floor(player:getY() + math.sin(ang) * dist), 0)
-        if sq and sq:getRoom() then
+        if sq and sq:getRoom() and not sq:isCouldSee(player:getPlayerNum()) then -- never lit in plain view
             local objs = sq:getObjects()
             for i = 0, objs:size() - 1 do
                 local o = objs:get(i)
@@ -121,13 +121,7 @@ local function hourly()
     if ZombRandFloat(0, 1) < 0.02 * Config.get("Frequency") then
         if isServer() then sendServerCommand("Echoes", "DistantShot", {}) else playDistantShot() end
     end
-    if state.alarm then
-        lure(state.alarm.x, state.alarm.y)
-        announce(state.alarm.x, state.alarm.y)
-        state.alarm.left = state.alarm.left - 1
-        if state.alarm.left <= 0 then state.alarm = nil end
-        return
-    end
+    if state.alarm then return end -- an alarm is sounding: it is driven by the minute handler below
 
     local night = getClimateManager():getNightStrength() > 0.5
     local chance = 0.03 * Config.get("Frequency") * (night and 1.8 or 1.0)
@@ -139,10 +133,33 @@ local function hourly()
     state.alarm = {
         x = math.floor(p:getX() + math.cos(ang) * dist),
         y = math.floor(p:getY() + math.sin(ang) * dist),
-        left = 2 + ZombRand(4),
+        left = (2 + ZombRand(4)) * 60, -- game minutes
+        sinceAnnounce = 99,
     }
-    Log.info(string.format("distant alarm started at %d,%d for %d h", state.alarm.x, state.alarm.y, state.alarm.left))
+    Log.info(string.format("distant alarm started at %d,%d for %d min", state.alarm.x, state.alarm.y, state.alarm.left))
 end
+
+-- A WorldSound is a short-lived stimulus, so a siren that "keeps sounding" must renew it every game minute.
+-- Cheap: one addSound call per minute, and only while an alarm is active.
+local function alarmMinute()
+    if isClient() or not Config.isEnabled("WorldEvents") then return end
+    local state = ModData.getOrCreate("EchoesWorld")
+    local a = state.alarm
+    if not a then return end
+    lure(a.x, a.y)
+    a.sinceAnnounce = a.sinceAnnounce + 1
+    if a.sinceAnnounce >= 10 then -- the faint audible siren is renewed every 10 game minutes
+        a.sinceAnnounce = 0
+        announce(a.x, a.y)
+    end
+    a.left = a.left - 1
+    if a.left <= 0 then
+        state.alarm = nil
+        Log.debug("distant alarm ended")
+    end
+end
+
+Events.EveryOneMinute.Add(function() Echoes.safe("WorldEvents.alarmMinute", alarmMinute) end)
 
 Events.EveryHours.Add(function() Echoes.safe("WorldEvents.hourly", hourly) end)
 

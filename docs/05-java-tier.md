@@ -120,3 +120,15 @@ Parche sobre `zombie.WorldSoundManager#addSound(Object source, int x, int y, int
 Lua (`Body.lua`) lo usa: durante **30 s** (más fuerte cuanto mayor el radio, decreciendo linealmente) el oído baja hasta un −60 % para los sonidos de ECHOES y suena un **zumbido** (`tinnitus`/`ringing`, si el juego tiene un sonido así). API: `EchoesEngine_msSinceLoud()`, `EchoesEngine_lastLoudRadius()`.
 
 Sin verificar: que los disparos pasen por `WorldSoundManager.addSound` con el jugador como fuente (el contador `loudEvents` de `EchoesEngine_stats()` lo dirá), el umbral 35 y los 30 s, y qué valor devuelve `getWornItemsHearingMultiplier()` con orejeras. No puedo atenuar el sonido *vanilla* del juego (solo lo que reproduce ECHOES) sin conocer su pipeline de audio: pendiente del inventario de clases de audio.
+
+---
+
+# Correcciones tras revisión independiente (importante)
+
+**Fallo crítico encontrado leyendo el código de ZombieBuddy (`Pipeline.java`, `Loader.java`, `Exposer.java`):** ZombieBuddy solo instala las clases `@Patch` y expone las `@LuaMethod` si su paquete es **exactamente** el `javaPkgName` del `mod.info`. Las cuatro clases de parche estaban en `com.echoes.engine.patches`, así que **no se habrían aplicado nunca** y sin ningún error visible (las funciones Lua sí existían, por estar `LuaApi` en el paquete correcto). Ahora todas están en `com.echoes.engine`, y `SelfTest` comprueba por reflexión que *toda* clase `@Patch` está en ese paquete exacto (CI lo vigila).
+
+**ZombieBuddy 2.x y 3.x:** el repositorio es la 3.0.0-beta3, pero el ecosistema (Viewpoint y su mod de compatibilidad) usa **2.3.x**. El JAR usa la anotación del paquete 2.x (`me.zed_0xff.zombie_buddy.Patch`): 2.x la usa nativa y 3.x la reescribe a `...annotations.Patch` al cargar (transformador `ZB2Compat`), así que **un solo JAR sirve para ambas**. El `mod.info` exige `ZBVersionMin=2.3.0`.
+
+**Otros cambios:** la caché de oído se indexa por posiciones exactas (sonido y casilla del zombi) y no por id de zombi (puede ser −1 o repetirse en un jugador); la ocultación por sigilo es **una decisión por zombi durante 1,5 s** (antes un sorteo por llamada, que el motor podría repetir muchas veces por segundo); los ruidos fuertes encadenados entre sobrecargas de `addSound` cuentan como uno.
+
+**Lo que sigue sin verificar** es todo lo que ocurre dentro del juego: que ZombieBuddy acepte el JAR y aplique los 4 parches (hay que leer su log en `console.txt`: `Found patch class: com.echoes.engine.HearingPatch` etc.), que `@Patch.Argument` con tipo `Object` empareje las firmas reales y el comportamiento real de cada método parcheado.

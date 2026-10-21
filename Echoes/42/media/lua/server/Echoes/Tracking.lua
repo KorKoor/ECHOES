@@ -27,6 +27,7 @@ Echoes.Tracking = Tracking
 
 local TRAIL_MAX = 120
 local MIN_AGE_MIN = 5.0          -- game minutes: newer trail points are out of reach
+local SAFE_DIST = 7.0             -- tiles: trail points this close to the player right now are never followed
 local STILL_REFRESH_MIN = 10.0   -- a standing player lays a new point only this often
 local BASE_LIFE_MIN = 25         -- game minutes a scent point lasts in still, dry air
 local TRAIL_FORGET_MIN = 90      -- a trail whose newest point is older than this is dropped
@@ -79,9 +80,8 @@ local function prune(wnow)
         local newest = tr[#tr]
         if not newest or wnow - newest.t > TRAIL_FORGET_MIN then trails[key] = nil end
     end
-    local n = 0
     for k, until_ in pairs(bloodUsed) do
-        if wnow > until_ then bloodUsed[k] = nil else n = n + 1 end
+        if wnow > until_ then bloodUsed[k] = nil end
     end
 end
 
@@ -94,14 +94,18 @@ local function lifeMinutes()
 end
 
 -- For a zombie: the nearest still-fresh point within its smelling range, then a point a few steps newer.
-local function followTarget(z, tr, life, wnow, mult)
+local function followTarget(z, tr, life, wnow, mult, owner)
     local zx, zy, zz = z:getX(), z:getY(), z:getZ()
     local nose = ZU.personality(z).nose
+    local ox, oy = owner:getX(), owner:getY()
     local bestI, bestD2
     for i = 1, #tr do
         local pt = tr[i]
         local age = wnow - pt.t
-        if age >= MIN_AGE_MIN and math.abs(pt.z - zz) < 1.0 then
+        -- scent close to where the player stands NOW is never used: that would walk zombies onto a player who is
+        -- hiding or resting. They follow the trail only while it is still more than SAFE_DIST tiles from the player.
+        local pdx, pdy = pt.x - ox, pt.y - oy
+        if age >= MIN_AGE_MIN and math.abs(pt.z - zz) < 1.0 and pdx * pdx + pdy * pdy > SAFE_DIST * SAFE_DIST then
             local s = pt.s * math.max(0, 1 - age / life) * mult
             if s > 0.12 then
                 local range = (4 + 7 * s) * nose
@@ -115,7 +119,8 @@ local function followTarget(z, tr, life, wnow, mult)
     -- head toward newer points, but never to one younger than MIN_AGE_MIN
     local j = bestI
     for k = bestI + 1, math.min(#tr, bestI + 3) do
-        if wnow - tr[k].t >= MIN_AGE_MIN then j = k else break end
+        local qdx, qdy = tr[k].x - ox, tr[k].y - oy
+        if wnow - tr[k].t >= MIN_AGE_MIN and qdx * qdx + qdy * qdy > SAFE_DIST * SAFE_DIST then j = k else break end
     end
     if j == bestI and bestD2 < 4 then return nil end -- already standing on the point
     return tr[j]
@@ -153,7 +158,7 @@ local function tick()
             and ZombRandFloat(0, 1) < 0.5 * math.min(1, ZU.personality(z).nose) then
             local owner = ZU.nearestPlayer(z, players, SCAN_RADIUS)
             local tr = owner and trails[ZU.playerKey(owner)]
-            local pt = tr and followTarget(z, tr, life, wnow, mult)
+            local pt = tr and followTarget(z, tr, life, wnow, mult, owner)
             if pt then
                 z:pathToLocationF(pt.x, pt.y, pt.z)
                 ZU.setBusy(z, now, 4000)
@@ -200,4 +205,11 @@ end)
 
 Events.EveryTenMinutes.Add(function()
     if not isClient() then Echoes.safe("Tracking.prune", prune, nowMin()) end
+end)
+
+-- A different world (new game / another save) must not inherit scent or stains from the previous one.
+Events.OnGameStart.Add(function()
+    trails = {}
+    bloodUsed = {}
+    ZU.resetCache()
 end)

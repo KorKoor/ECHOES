@@ -15,6 +15,9 @@ function ZombRandFloat(a, b) return a + math.random() * (b - a) end
 function instanceof(o, c) return o.class == c end
 local played = {}
 local function list(t) return { size = function() return #t end, get = function(_, i) return t[i + 1] end } end
+local lamp = { class = "IsoLightSwitch", isActivated = function() return true end, canSwitchLight = function() return true end,
+  setActivated = function(_, v) played[#played+1] = "lamp=" .. tostring(v) end }
+
 local function sq(x, y, z, o) o = o or {}
   local s = { x = x, y = y, z = z, objs = o.objs or {} }
   function s:getX() return x end function s:getY() return y end function s:getZ() return z end
@@ -32,8 +35,6 @@ local function sq(x, y, z, o) o = o or {}
   return s end
 local door = { IsOpen = function() return false end, isLocked = function() return false end,
   isBarricaded = function() return false end, setLocked = function(_, v) played[#played+1]="LOCK="..tostring(v) end, ToggleDoorSilent = function() played[#played+1]="TOGGLE" end }
-local lamp = { class = "IsoLightSwitch", isActivated = function() return true end, canSwitchLight = function() return true end,
-  setActivated = function(_, v) played[#played+1] = "lamp=" .. tostring(v) end }
 local cache = {}
 local cell = {}
 function cell:getGridSquare(x, y, z) local k = x .. "," .. y .. "," .. z
@@ -61,6 +62,7 @@ local player = { getX=function() return 100.5 end, getY=function() return 100.5 
   isRunning=function() return true end, isSprinting=function() return false end,
   getBodyDamage=function() return { getNumPartsBleeding=function() return 2 end, getOverallBodyHealth=function() return 40 end, getThermoregulator=function() return { getCoreCelcius=function() return 35.5 end } end } end }
 function getPlayer() return player end
+function getSpecificPlayer(i) if i == 0 then return player end return nil end
 function getCell() return cell end
 function getGameTime() return { getWorldAgeHours = function() return gh end, getHour = function() return 6 end } end
 function getClimateManager() return { getNightStrength=function() return 0.9 end, getRainIntensity=function() return 0.5 end,
@@ -102,7 +104,7 @@ zresp = true; fire("EveryOneMinute")   -- zombie hears something
 zresp = false; tms = tms + 1000; fire("EveryOneMinute")  -- ...then loses it: should start a search
 Echoes.Places.mark(player, 1)
 local sq0 = cell:getGridSquare(100,100,0)
-Echoes.Interaction.listen(player, { getSquare = function() return cell:getGridSquare(104,100,0) end })
+Echoes.Interaction.listen(player, { getSquare = function() return cell:getGridSquare(104,100,0) end, getOppositeSquare = function() return cell:getGridSquare(105,100,0) end })
 Echoes.Stories.createLockedIn(player)
 -- scent: walk a trail, then check a distant idle zombie is sent along it
 zresp = false; zmd = {}

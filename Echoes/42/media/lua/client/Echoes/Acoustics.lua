@@ -80,7 +80,6 @@ function Acoustics.factor(srcSq, player, opts)
 
     -- Rain and wind mask quiet sounds; panic or breathlessness dulls the listener a little.
     if Echoes.Weather then f = f * Echoes.Weather.hearingMultiplier(plSq) end
-    if Echoes.Body and Echoes.Config.isEnabled("Body") then f = f * Echoes.Body.state.hearing end
     if Echoes.VehicleSense then f = f * Echoes.VehicleSense.cabinFactor(player) end
 
     return math.max(0.0, math.min(1.0, f))

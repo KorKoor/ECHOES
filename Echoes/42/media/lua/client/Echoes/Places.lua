@@ -8,6 +8,7 @@ local Places = {}
 Echoes.Places = Places
 
 local MAX_PLACES = 12
+local MIN_WEIGHT = 0.15 -- a haunting that has faded below this is forgotten
 local MAX_PICK_DIST = 30 -- tiles: only places the player could perceive are chosen
 local LIFETIME_HOURS = 24 * 10
 
@@ -52,7 +53,7 @@ function Places.pick(player, minAgeHours)
     for i = #list, 1, -1 do
         local p = list[i]
         local age = now - p.t
-        if age > LIFETIME_HOURS then
+        if age > LIFETIME_HOURS or p.w < MIN_WEIGHT then
             table.remove(list, i)
         elseif age >= (minAgeHours or 0) then
             local sq = getCell():getGridSquare(p.x, p.y, p.z)

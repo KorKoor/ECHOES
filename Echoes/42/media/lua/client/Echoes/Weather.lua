@@ -22,12 +22,6 @@ function Weather.hearingMultiplier(listenerSquare)
     return ok and mult or 1.0
 end
 
--- 0 clear .. 1 dense fog, straight from the game.
-function Weather.fog()
-    local ok, v = pcall(function() return clim():getFogIntensity() end)
-    return ok and v or 0
-end
-
 -- 0..1 "exposure": cold core temperature, wet clothes and bad weather outdoors.
 -- Feeds the psychological pressure model; it never changes vanilla survival mechanics.
 function Weather.exposure(player)

@@ -37,7 +37,7 @@ end
 local function runDoorAjar(player, near)
     local pnum = player:getPlayerNum()
     local found = eachNearbySquare(player, 80, function(sq)
-        local d = sq:getDoor(true) or sq:getDoor(false)
+        local d = Echoes.doorAt(sq)
         if d and farEnough(player, sq, 6) and not sq:isCouldSee(pnum)
             and not d:IsOpen() and not d:isLocked() and not d:isBarricaded()
             and Echoes.isInteriorDoor(d) then -- never a front door: it could let zombies into the player's base

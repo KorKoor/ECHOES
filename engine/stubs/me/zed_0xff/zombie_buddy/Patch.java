@@ -1,4 +1,4 @@
-package me.zed_0xff.zombie_buddy.annotations;
+package me.zed_0xff.zombie_buddy;
 
 import java.lang.annotation.*;
 
