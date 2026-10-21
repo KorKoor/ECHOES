@@ -11,9 +11,11 @@ Echoes.Phenomena = Phenomena
 
 local RADIUS = 14
 
-local function eachNearbySquare(player, tries, fn)
+-- Samples squares around `center` (a haunted place) when given, otherwise around the player.
+local function eachNearbySquare(player, tries, fn, center)
     local cell = getCell()
-    local px, py, pz = math.floor(player:getX()), math.floor(player:getY()), player:getZ()
+    local c = center or player
+    local px, py, pz = math.floor(c:getX()), math.floor(c:getY()), center and center:getZ() or player:getZ()
     for _ = 1, tries do
         local sq = cell:getGridSquare(px + ZombRand(-RADIUS, RADIUS + 1), py + ZombRand(-RADIUS, RADIUS + 1), pz)
         if sq then
@@ -30,7 +32,7 @@ local function farEnough(player, sq, minD)
 end
 
 -- door_ajar -------------------------------------------------------------------------------------
-local function runDoorAjar(player)
+local function runDoorAjar(player, near)
     local pnum = player:getPlayerNum()
     local found = eachNearbySquare(player, 80, function(sq)
         local d = sq:getDoor(true) or sq:getDoor(false)
@@ -38,7 +40,7 @@ local function runDoorAjar(player)
             and not d:IsOpen() and not d:isLocked() and not d:isBarricaded() then
             return { sq = sq, door = d }
         end
-    end)
+    end, near)
     if not found then return nil end
     found.door:ToggleDoorSilent()
     -- Faint creak, quieter than a real door, scaled by acoustics.
@@ -53,7 +55,7 @@ end
 -- light_flicker ----------------------------------------------------------------------------------
 local FLICKER_STEPS = { 0, 110, 90, 240, 100, 380, 120 } -- ms between toggles
 
-local function findLamp(player)
+local function findLamp(player, near)
     local pnum = player:getPlayerNum()
     return eachNearbySquare(player, 80, function(sq)
         if not farEnough(player, sq, 5) or sq:isCouldSee(pnum) then return nil end
@@ -64,11 +66,11 @@ local function findLamp(player)
                 return { sq = sq, sw = o }
             end
         end
-    end)
+    end, near)
 end
 
-local function runFlicker(player)
-    local lamp = findLamp(player)
+local function runFlicker(player, near)
+    local lamp = findLamp(player, near)
     if not lamp then return nil end
     local sw = lamp.sw
     local state = true
@@ -88,8 +90,8 @@ end
 
 -- Kinds consumed by the Director. `run(player)` returns the source square on success, nil otherwise.
 Phenomena.kinds = {
-    { id = "door_ajar", weight = 0.6, ambiguous = true, theme = "door", run = runDoorAjar },
-    { id = "light_flicker", weight = 0.5, ambiguous = true, theme = "light", run = runFlicker },
+    { id = "door_ajar", weight = 0.6, ambiguous = true, theme = "door", usesPlace = true, run = runDoorAjar },
+    { id = "light_flicker", weight = 0.5, ambiguous = true, theme = "light", usesPlace = true, run = runFlicker },
 }
 
 function Phenomena.available()

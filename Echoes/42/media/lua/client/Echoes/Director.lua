@@ -233,7 +233,7 @@ function Director.evaluate(force)
     local sq, remembered
 
     if kind.run then
-        sq = kind.run(player)
+        sq = kind.run(player, kind.usesPlace and placeSq or nil)
         if not sq then Log.debug("could not stage " .. kind.id); return end
     else
         remembered = placeSq or ((ZombRandFloat(0, 1) < CALLBACK_CHANCE) and callbackSquare(mem, player) or nil)
@@ -259,7 +259,7 @@ function Director.evaluate(force)
             end)
         end
     end
-    if place and not kind.run and Echoes.Places then Echoes.Places.escalate(place) end -- only if the place was used
+    if place and (not kind.run or kind.usesPlace) and Echoes.Places then Echoes.Places.escalate(place) end -- only if used
 
     if kind.ambiguous and Echoes.Fear then Echoes.Fear.shock(0.12 + 0.2 * pressure) end
 
