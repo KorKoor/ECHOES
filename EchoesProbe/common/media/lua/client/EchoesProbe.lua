@@ -78,6 +78,18 @@ local function runProbe()
         return "alarmed=" .. tostring(b:getDef():isAlarmed())
     end)
 
+    -- 5b. Screen effects (SearchMode); read-only here, no override is enabled
+    check("getSearchMode", function()
+        local sm = getSearchMode()
+        local b = sm:getBlur(0)
+        return "mode=" .. tostring(sm) .. " blur=" .. tostring(b)
+            .. " desat=" .. tostring(sm:getDesat(0)) .. " darkness=" .. tostring(sm:getDarkness(0))
+            .. " enabled=" .. tostring(sm:isEnabled(0))
+    end)
+    check("ClimateManager.setDesaturation exists", function()
+        return tostring(getClimateManager().setDesaturation ~= nil)
+    end)
+
     -- 6. Custom event creation (for the ECHOES internal bus)
     check("LuaEventManager.AddEvent", function()
         LuaEventManager.AddEvent("EchoesProbeEvent")
