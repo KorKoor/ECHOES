@@ -74,5 +74,8 @@ Echoes.Bus.emit("EchoesPhenomenonFired", id, ctx)
 - Presupuesto: el Director debe costar <0,1 ms por evaluación (medir con `getTimestampMs()` `[V]`).
 - Pruebas manuales de regresión: (a) mod desactivado → sin trazas ni errores; (b) Viewpoint instalado y no instalado; (c) cargar partida existente; (d) 30 min de juego con `Frequency=4` sin errores en consola; (e) dos jugadores en coop local `[V]`.
 
-## 9. Fuera del MVP
+## 9. Efectos de pantalla (post-MVP, nivel A)
+Tras el MVP de audio: `Phenomena/Screen.lua` usando `getSearchMode()` en override con `setFadeTime` largo (ver adenda §9 de la investigación). Requiere spike: añadir al probe `getSearchMode():getBlur(0)` y `setOverride`. GLSL propio queda fuera del core.
+
+## 10. Fuera del MVP
 Senses (oclusión), WorldEvents (servidor), AI, Vehicles, Interaction y capa visual 2D. Cada uno entra con su spike propio.

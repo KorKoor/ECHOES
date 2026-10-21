@@ -123,3 +123,17 @@ Después: (2) Living World server-side con alarmas de edificio, (3) Senses sobre
 - ZombieBuddy en pzwiki.net/wiki/ZombieBuddy y Workshop 3619862853, 3807686870.
 - Reactive Sound Events: Workshop 2969551071 (comentarios).
 - Estructura B42: guías comunitarias (Workshop discussion 2735294987; projectzomboid.wiki/multiplayer/mods).
+
+## 9. Adenda: shaders y efectos de pantalla (aportado por el usuario: "shaders de Minecraft Java")
+
+Contexto: en Minecraft Java los shader packs funcionan porque OptiFine/Iris exponen un pipeline de post-proceso sustituible. Project Zomboid **no tiene** un equivalente oficial. Lo que sí hay (Javadoc 42.20.0, verificado como existencia de clases/métodos):
+
+| Nivel | Qué | Estado |
+|---|---|---|
+| A. Efectos vanilla desde Lua | `SearchMode` (accesible vía `LuaManager.GlobalObject.getSearchMode()`): por jugador `setEnabled`, `setOverride`, y valores `blur`, `darkness`, `desat`, `radius`, `gradientWidth` con `SearchModeFloat` (`setInterior/Exterior`, `setTargets`), `setFadeTime`. `ClimateManager.setDesaturation(float)`. `ScreenFader`. | Existe en Java; **por verificar** que Lua pueda fijar los valores y que se vea bajo Viewpoint |
+| B. UI 2D | Capas ISUI con texturas existentes (viñetas, ruido). Independiente del renderer. | Viable, riesgo bajo |
+| C. GLSL propio | Existen `ShaderProgram` (`createFragShader`, `setValue`, `Start/End`) y `ShaderManager.getOrCreateShader`; los shaders de juego (niebla, agua, charcos, clima) son clases Java con ficheros GLSL. Un post-proceso nuevo exige **Java (ZombieBuddy)** o sustituir ficheros GLSL vanilla (no verificado que los mods puedan hacerlo). | Incierto; fuera del MVP |
+
+Riesgos del nivel C: Viewpoint trae su propio renderer, así que un shader escrito para el pipeline vanilla puede no aplicarse o romperse; además obliga al usuario a aceptar un JAR sin sandbox. Recomendación: **A y B en ECHOES core; C como add-on opcional separado ("Echoes Shaders") más adelante**, con spike propio.
+
+Idea concreta para Echoes con el nivel A: oscurecimiento/desaturación lenta y breve cuando ocurre un fenómeno (`SearchMode` en modo override con fade largo), sin sustos bruscos. Es compatible con la regla "efectos de pantalla mediante mecanismos existentes".
