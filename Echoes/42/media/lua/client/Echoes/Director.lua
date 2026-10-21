@@ -127,6 +127,17 @@ local function findWalkableSquare(player, behind)
     return best
 end
 
+-- A door within `radius` tiles of a square (for door-themed sounds at a remembered place); nil if none.
+local function findDoorNear(sq, radius)
+    local cell = getCell()
+    local sx, sy, sz = sq:getX(), sq:getY(), sq:getZ()
+    for _ = 1, 40 do
+        local c = cell:getGridSquare(sx + ZombRand(-radius, radius + 1), sy + ZombRand(-radius, radius + 1), sz)
+        if c and (c:getDoor(true) or c:getDoor(false)) then return c end
+    end
+    return nil
+end
+
 -- Remembered square from a past phenomenon (haunted Places are handled in evaluate).
 local function callbackSquare(mem, player)
     local t = nowHours()
@@ -227,6 +238,9 @@ function Director.evaluate(force)
     else
         remembered = placeSq or ((ZombRandFloat(0, 1) < CALLBACK_CHANCE) and callbackSquare(mem, player) or nil)
         local behind = (not kind.needsDoor) and ZombRandFloat(0, 1) < (0.25 + 0.35 * pressure)
+        if remembered and kind.needsDoor then -- a door sound needs a door: look near the remembered spot
+            remembered = findDoorNear(remembered, 6) or remembered
+        end
         sq = remembered or (kind.needsDoor and findDoorSquare(player) or findWalkableSquare(player, behind))
         if not sq then Log.debug("no source square for " .. kind.id); return end
         if kind.steps then
@@ -245,7 +259,7 @@ function Director.evaluate(force)
             end)
         end
     end
-    if place and Echoes.Places then Echoes.Places.escalate(place) end
+    if place and not kind.run and Echoes.Places then Echoes.Places.escalate(place) end -- only if the place was used
 
     if kind.ambiguous and Echoes.Fear then Echoes.Fear.shock(0.12 + 0.2 * pressure) end
 

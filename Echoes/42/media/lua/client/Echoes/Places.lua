@@ -57,7 +57,9 @@ function Places.pick(player, minAgeHours)
         elseif age >= (minAgeHours or 0) then
             local sq = getCell():getGridSquare(p.x, p.y, p.z)
             if sq then
-                local w = p.w * (1.0 - age / LIFETIME_HOURS)
+                -- nearer places are far more likely: you cannot hear what happens 80 tiles away
+                local dx, dy = p.x - player:getX(), p.y - player:getY()
+                local w = p.w * (1.0 - age / LIFETIME_HOURS) / (1.0 + math.sqrt(dx * dx + dy * dy) / 20)
                 usable[#usable + 1] = { sq = sq, w = w, place = p }
                 total = total + w
             end
