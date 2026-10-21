@@ -19,31 +19,30 @@ local function store()
     return s.list
 end
 
--- Called by the Director when conditions are right: locks a nearby, unseen, closed door and records the story.
+-- Called by the Director when conditions are right: locks a nearby, unseen, closed INTERIOR door of a building the
+-- player has never been inside (so never their base or a room they have already looted), and records the story.
 function Stories.createLockedIn(player)
     local list = store()
     if #list >= MAX_STORIES then return nil end
-    local cell, pnum = getCell(), player:getPlayerNum()
+    local pnum = player:getPlayerNum()
     local px, py, pz = math.floor(player:getX()), math.floor(player:getY()), player:getZ()
-    for _ = 1, 80 do
-        local sq = cell:getGridSquare(px + ZombRand(-14, 15), py + ZombRand(-14, 15), pz)
-        if sq and sq:getRoom() then
-            local d = Echoes.doorAt(sq)
-            local dx, dy = sq:getX() - px, sq:getY() - py
-            if d and dx * dx + dy * dy >= 49 and not sq:isCouldSee(pnum)
-                and not d:IsOpen() and not d:isLocked() and not d:isBarricaded()
-                and Echoes.isInteriorDoor(d) then
-                d:setLocked(true)
-                list[#list + 1] = { kind = "locked_in", x = sq:getX(), y = sq:getY(), z = sq:getZ(), knocks = 0 }
-                Log.info("story created: locked_in at " .. sq:getX() .. "," .. sq:getY())
-                return sq
-            end
-        end
-    end
-    return nil
+    local mySq = player:getCurrentSquare()
+    local myBuilding = mySq and mySq:getBuildingDef()
+    local candidates = Echoes.doorSquares(px, py, pz, 14, function(sq, d)
+        local dx, dy = sq:getX() - px, sq:getY() - py
+        if dx * dx + dy * dy < 49 or sq:isCouldSee(pnum) then return false end
+        if d:IsOpen() or d:isLocked() or d:isBarricaded() or not Echoes.isInteriorDoor(d) then return false end
+        local bd = sq:getBuildingDef()
+        return bd ~= nil and bd ~= myBuilding and not bd:isHasBeenVisited()
+    end)
+    if #candidates == 0 then return nil end
+    local sq = candidates[1 + ZombRand(#candidates)]
+    Echoes.doorAt(sq):setLocked(true)
+    list[#list + 1] = { kind = "locked_in", x = sq:getX(), y = sq:getY(), z = sq:getZ(), knocks = 0 }
+    Log.info("story created: locked_in at " .. sq:getX() .. "," .. sq:getY())
+    return sq
 end
 
--- Occasional knocking when the player is close to an existing story door.
 -- The door of a story, if its square is loaded.
 local function storyDoor(s)
     local sq = getCell():getGridSquare(s.x, s.y, s.z)
@@ -51,18 +50,24 @@ local function storyDoor(s)
     return Echoes.doorAt(sq), true
 end
 
-local function update(player)
+-- Housekeeping runs even when Stories is switched off, so a door this module locked is never left locked forever:
+-- stories whose door was unlocked/opened/removed are dropped, and finished or disabled ones are unlocked.
+local function update(player, active)
     local list = store()
     local px, py = player:getX(), player:getY()
-    for i = #list, 1, -1 do -- drop stories whose door was unlocked/opened/removed, or that have said everything
+    for i = #list, 1, -1 do
         local s = list[i]
         local door, loaded = storyDoor(s)
-        if loaded and (not door or not door:isLocked() or door:IsOpen()) then table.remove(list, i)
-        elseif s.knocks >= 12 then
-            if door then pcall(function() door:setLocked(false) end) end -- the story ends: never leave a door locked forever
-            table.remove(list, i)
+        if loaded then
+            if not door or not door:isLocked() or door:IsOpen() then
+                table.remove(list, i)
+            elseif s.knocks >= 12 or not active then
+                pcall(function() door:setLocked(false) end)
+                table.remove(list, i)
+            end
         end
     end
+    if not active then return end
     for _, s in ipairs(list) do
         if s.kind == "locked_in" and s.knocks < 12 and math.abs(s.z - player:getZ()) < 1 then
             local dx, dy = s.x - px, s.y - py
@@ -90,8 +95,8 @@ function Stories.available()
 end
 
 Events.EveryOneMinute.Add(function()
-    if not Config.isEnabled("Stories") then return end
+    if isClient() then return end -- world changes (locked doors) belong to the host / server
     local player = getPlayer()
     if not player or player:isDead() then return end
-    Echoes.safe("Stories.update", update, player)
+    Echoes.safe("Stories.update", update, player, Config.isEnabled("Stories"))
 end)

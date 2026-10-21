@@ -183,3 +183,21 @@ end
 function Echoes.doorAt(sq)
     return sq:getDoor(true) or sq:getDoor(false)
 end
+
+-- Every square holding a door within `radius` tiles (square window) of (cx, cy, z). A bounded, deterministic scan
+-- (at most (2r+1)^2 squares): random sampling found a single door in a 29x29 area only ~20% of the time.
+-- `accept(sq, door)` may veto candidates. Returns an array of squares.
+function Echoes.doorSquares(cx, cy, z, radius, accept)
+    local cell = getCell()
+    local out = {}
+    for dx = -radius, radius do
+        for dy = -radius, radius do
+            local sq = cell:getGridSquare(cx + dx, cy + dy, z)
+            if sq then
+                local d = Echoes.doorAt(sq)
+                if d and (not accept or accept(sq, d)) then out[#out + 1] = sq end
+            end
+        end
+    end
+    return out
+end

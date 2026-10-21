@@ -80,17 +80,21 @@ end
 local watchGen = 0
 function Body.startEarWatch()
     watchGen = watchGen + 1
+    if not EchoesEngine_msSinceLoud then return end -- without the Java engine there is nothing to watch: no timer at all
     local gen = watchGen
     local function watch()
         if gen ~= watchGen then return end -- a newer game started its own watcher
-        local player = getPlayer()
-        if not player or player:isDead() or not Echoes.Config.isEnabled("Body") then return end
-        local deaf = Body.deafness()
-        if deaf > 0.05 then
-            local ring = Echoes.Sounds.resolve("ringing", {}, { "tinnitus", "ringing", "earring" }, { "phone", "door", "bell", "alarm" })
-            Echoes.Sounds.playAt(player:getX(), player:getY(), player:getZ(), ring, 0.15 + 0.35 * deaf, 0.01, false, true)
-        end
-        Echoes.Timer.after(1500, watch)
+        Echoes.safe("Body.earWatch", function()
+            local player = getPlayer()
+            if player and not player:isDead() and Echoes.Config.isEnabled("Body") then
+                local deaf = Body.deafness()
+                if deaf > 0.05 then
+                    local ring = Echoes.Sounds.resolve("ringing", {}, { "tinnitus", "ringing", "earring" }, { "phone", "door", "bell", "alarm" })
+                    Echoes.Sounds.playAt(player:getX(), player:getY(), player:getZ(), ring, 0.15 + 0.35 * deaf, 0.01, false, true)
+                end
+            end
+        end)
+        Echoes.Timer.after(1500, watch) -- always re-arm (also while dead or between respawns)
     end
     Echoes.Timer.after(1500, watch)
 end

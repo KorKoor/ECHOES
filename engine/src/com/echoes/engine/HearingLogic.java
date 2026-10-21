@@ -16,17 +16,16 @@ import zombie.iso.weather.ClimateManager;
 public final class HearingLogic {
     private HearingLogic() {}
 
-    private static final class Entry {
-        final float factor;
-        final long expires;
-        Entry(float f, long e) { factor = f; expires = e; }
-    }
-
-    private static final ConcurrentHashMap<Long, Entry> cache = new ConcurrentHashMap<>();
+    // Direct-mapped primitive cache: no boxing, no per-call allocation. Slots are written and read on the game thread;
+    // a stale or colliding slot just means one recomputation, never a wrong result (the full key is compared).
+    private static final int SLOTS = 4096;
+    private static final long[] keys = new long[SLOTS];
+    private static final float[] factors = new float[SLOTS];
+    private static final long[] expires = new long[SLOTS];
     private static final int MAX_CONSECUTIVE_ERRORS = 25;
 
     /** Called whenever an option changes so stale factors are not reused. */
-    public static void clearCache() { cache.clear(); }
+    public static void clearCache() { java.util.Arrays.fill(expires, 0L); }
 
     /** Seam so the logic can be tested without the (final) IsoZombie class. */
     public interface ZView {
@@ -37,14 +36,17 @@ public final class HearingLogic {
         if (!(Options.hearingOcclusion || Options.weatherHearing) || result <= 0f) return result;
         if (Stats.consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) return result;
         try {
-            final IsoZombie z = (IsoZombie) zomObj;
+            IsoZombie z = (IsoZombie) zomObj;
             if (z == null) return result;
-            return adjustCore(result, (WorldSoundManager.WorldSound) soundObj, new ZView() {
-                public IsoGridSquare square() { return z.getCurrentSquare(); }
-            });
+            return adjustSquare(result, (WorldSoundManager.WorldSound) soundObj, z.getCurrentSquare());
         } catch (Throwable t) {
             return failed(result, t);
         }
+    }
+
+    /** Test seam variant. */
+    public static float adjustCore(float result, WorldSoundManager.WorldSound s, ZView z) {
+        return adjustSquare(result, s, z == null ? null : z.square());
     }
 
     private static float failed(float result, Throwable t) {
@@ -55,27 +57,25 @@ public final class HearingLogic {
         return result;
     }
 
-    public static float adjustCore(float result, WorldSoundManager.WorldSound s, ZView z) {
+    static float adjustSquare(float result, WorldSoundManager.WorldSound s, IsoGridSquare zsq) {
         long t0 = System.nanoTime();
         try {
-            if (s == null || z == null) return result;
+            if (s == null || zsq == null) return result;
             Stats.calls.incrementAndGet();
-
             // The factor depends only on the two positions, so the cache is keyed by exactly those (never by zombie id:
             // ids can be -1 or shared in single player, which would make zombies reuse each other's factor).
-            IsoGridSquare zsq = z.square();
-            if (zsq == null) return result;
             long key = key(s.x, s.y, s.z, zsq.getX(), zsq.getY(), zsq.getZ());
+            int slot = (int) (key ^ (key >>> 32)) & (SLOTS - 1);
             long now = System.currentTimeMillis();
-            Entry e = cache.get(key);
             float f;
-            if (e != null && e.expires > now) {
-                f = e.factor;
+            if (keys[slot] == key && expires[slot] > now) {
+                f = factors[slot];
                 Stats.cacheHits.incrementAndGet();
             } else {
                 f = compute(s, zsq);
-                if (cache.size() > 4096) cache.clear();
-                cache.put(key, new Entry(f, now + Options.cacheMs));
+                keys[slot] = key;
+                factors[slot] = f;
+                expires[slot] = now + Options.cacheMs;
             }
             Stats.consecutiveErrors = 0;
             if (f >= 0.999f) return result;

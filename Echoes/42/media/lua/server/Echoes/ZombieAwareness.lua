@@ -17,8 +17,10 @@ Echoes.ZombieAwareness = ZombieAwareness
 local SCAN_RADIUS = 45        -- only zombies this close to a player are considered
 local MAX_CANDIDATES = 150    -- nearest-first cap on zombies inspected per pass
 local BUDGET = 6              -- new searches started per pass
-local LOST_WINDOW_MS = 12000  -- how long after hearing a sound a search may begin
-local HOP_GAP_MS = 8000       -- minimum time between two search hops of the same zombie
+-- The pass runs once per game minute, so these windows are in GAME minutes: they stay coherent whatever the sandbox day
+-- length or game speed (real-time windows broke at long day lengths, where a game minute lasts many real seconds).
+local LOST_WINDOW_MIN = 3.0   -- how long after hearing a sound a search may begin
+local HOP_GAP_MIN = 0.9       -- minimum time between two search hops of the same zombie (one pass apart)
 local MAX_HOPS = 3            -- extra hops a fully persistent zombie may make (everyone gets at least 1)
 local MIN_INTERVAL_MS = 1500  -- real-time rate limit
 
@@ -39,23 +41,24 @@ local function tick()
     local players = ZU.players()
     if #players == 0 then return end
     local now = getTimestampMs()
+    local wnow = getGameTime():getWorldAgeHours() * 60
     local started = 0
 
     for _, z in ipairs(ZU.nearbyZombies(players, SCAN_RADIUS, MAX_CANDIDATES)) do
         local md = z:getModData()
         if z:isRespondingToPlayerSound() or z:isMovingToPlayerSound() then
-            md.echoesHeard = now
+            md.echoesHeard = wnow
             md.echoesHops = 0
         elseif md.echoesHeard and started < BUDGET and ZU.isIdle(z, now)
-            and (now - md.echoesHeard) <= LOST_WINDOW_MS
-            and (not md.echoesSearched or (now - md.echoesSearched) > HOP_GAP_MS)
+            and (wnow - md.echoesHeard) <= LOST_WINDOW_MIN
+            and (not md.echoesSearched or (wnow - md.echoesSearched) >= HOP_GAP_MIN)
             and (md.echoesHops or 0) < 1 + math.floor(ZU.personality(z).persist * MAX_HOPS) then
             local sq = pickSearchSquare(z)
             if sq then
                 z:pathToLocationF(sq:getX() + 0.5, sq:getY() + 0.5, sq:getZ())
-                md.echoesSearched = now
+                md.echoesSearched = wnow
                 md.echoesHops = (md.echoesHops or 0) + 1
-                md.echoesHeard = now -- keeps the window open for the next hop of the chain
+                md.echoesHeard = wnow -- keeps the window open for the next hop of the chain
                 ZU.setBusy(z, now, 5000)
                 started = started + 1
             end

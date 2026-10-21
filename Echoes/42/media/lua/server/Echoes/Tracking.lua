@@ -153,37 +153,53 @@ local function tick()
     local zombies = ZU.nearbyZombies(players, SCAN_RADIUS, MAX_CANDIDATES)
     local scentStarted, packStarted = 0, 0
 
+    -- Classify once (each isIdle / target check is several Java calls): who is chasing something it can see, and who
+    -- is idle. The pack-alert pass then only walks chasers x idle zombies, not every pair of candidates.
+    local idle, chasers = {}, {}
     for _, z in ipairs(zombies) do
-        if scentOn and scentStarted < SCENT_BUDGET and ZU.isIdle(z, now)
-            and ZombRandFloat(0, 1) < 0.5 * math.min(1, ZU.personality(z).nose) then
-            local owner = ZU.nearestPlayer(z, players, SCAN_RADIUS)
-            local tr = owner and trails[ZU.playerKey(owner)]
-            local pt = tr and followTarget(z, tr, life, wnow, mult, owner)
-            if pt then
-                z:pathToLocationF(pt.x, pt.y, pt.z)
-                ZU.setBusy(z, now, 4000)
-                scentStarted = scentStarted + 1
-            elseif ZU.personality(z).nose > 0.8 and ZombRandFloat(0, 1) < 0.15 then
-                local sq = bloodSquare(z, wnow)
-                if sq then
-                    z:pathToLocationF(sq:getX() + 0.5, sq:getY() + 0.5, sq:getZ())
-                    ZU.setBusy(z, now, 5000)
+        if z:getTarget() ~= nil then
+            if packOn and z:isTargetVisible() then chasers[#chasers + 1] = z end
+        elseif ZU.isIdle(z, now) then
+            idle[#idle + 1] = z
+        end
+    end
+
+    if scentOn then
+        for _, z in ipairs(idle) do
+            if scentStarted >= SCENT_BUDGET then break end
+            if ZombRandFloat(0, 1) < 0.5 * math.min(1, ZU.personality(z).nose) then
+                local owner = ZU.nearestPlayer(z, players, SCAN_RADIUS)
+                local tr = owner and trails[ZU.playerKey(owner)]
+                local pt = tr and followTarget(z, tr, life, wnow, mult, owner)
+                if pt then
+                    z:pathToLocationF(pt.x, pt.y, pt.z)
+                    ZU.setBusy(z, now, 4000)
                     scentStarted = scentStarted + 1
+                elseif ZU.personality(z).nose > 0.8 and ZombRandFloat(0, 1) < 0.15 then
+                    local sq = bloodSquare(z, wnow)
+                    if sq then
+                        z:pathToLocationF(sq:getX() + 0.5, sq:getY() + 0.5, sq:getZ())
+                        ZU.setBusy(z, now, 5000)
+                            scentStarted = scentStarted + 1
+                    end
                 end
             end
-        elseif packOn and packStarted < PACK_BUDGET and z:getTarget() ~= nil and z:isTargetVisible() then
-            -- idle neighbours drift toward THIS zombie
-            local zx, zy, zz = z:getX(), z:getY(), z:getZ()
-            for _, o in ipairs(zombies) do
-                if packStarted >= PACK_BUDGET then break end
-                if o ~= z then
-                    local dx, dy = o:getX() - zx, o:getY() - zy
-                    if dx * dx + dy * dy <= PACK_RADIUS * PACK_RADIUS and ZU.isIdle(o, now)
-                        and ZombRandFloat(0, 1) < 0.1 + 0.4 * ZU.personality(o).bold then
-                        o:pathToLocationF(zx, zy, zz)
-                        ZU.setBusy(o, now, 6000)
-                        packStarted = packStarted + 1
-                    end
+        end
+    end
+
+    -- idle neighbours drift toward THE CHASER (its moans), not toward its target
+    for _, c in ipairs(chasers) do
+        if packStarted >= PACK_BUDGET then break end
+        local cx, cy, cz = c:getX(), c:getY(), c:getZ()
+        for _, o in ipairs(idle) do
+            if packStarted >= PACK_BUDGET then break end
+            if ZU.isIdle(o, now) then -- setBusy marks a zombie sent somewhere this pass
+                local dx, dy = o:getX() - cx, o:getY() - cy
+                if dx * dx + dy * dy <= PACK_RADIUS * PACK_RADIUS
+                    and ZombRandFloat(0, 1) < 0.1 + 0.4 * ZU.personality(o).bold then
+                    o:pathToLocationF(cx, cy, cz)
+                    ZU.setBusy(o, now, 6000)
+                    packStarted = packStarted + 1
                 end
             end
         end

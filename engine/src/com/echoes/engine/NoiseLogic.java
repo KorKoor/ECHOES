@@ -22,22 +22,43 @@ public final class NoiseLogic {
         return 1.0f + 0.15f * over * Options.noiseStrength;
     }
 
-    /** Returns {radius, volume} to use. */
-    public static int[] adjust(Object selfObj, int radius, int volume) {
+    /** Load ratio of an IsoPlayer, or -1 when this is not the load-affected case (observe-only, other object, error). */
+    private static float load(Object selfObj) {
+        if (!Options.noise || !(selfObj instanceof IsoPlayer)) return -1f;
+        IsoPlayer p = (IsoPlayer) selfObj;
+        return p.getInventoryWeight() / Math.max(1, p.getMaxWeight());
+    }
+
+    /**
+     * Radius to use. Loud events (>= LoudLogic.loudRadius: gunshots, explosions) are left exactly as they are, and a
+     * load-inflated radius is capped just below that threshold, so this never turns a footstep into a "gunshot" for
+     * LoudLogic. Counts the call (observe-only mode counts too).
+     */
+    public static int radius(Object selfObj, int radius) {
         try {
             Stats.noiseCalls.incrementAndGet();
             Stats.noiseRadiusSum.addAndGet(radius);
-            if (!Options.noise || !(selfObj instanceof IsoPlayer)) return new int[] { radius, volume };
-            IsoPlayer p = (IsoPlayer) selfObj;
-            float max = Math.max(1, p.getMaxWeight());
-            float load = p.getInventoryWeight() / max;
-            float rf = radiusFactor(load), vf = volumeFactor(load);
-            if (rf <= 1.0001f) return new int[] { radius, volume };
+            float load = load(selfObj);
+            if (load < 0f || radius >= LoudLogic.loudRadius) return radius;
+            float rf = radiusFactor(load);
+            if (rf <= 1.0001f) return radius;
             Stats.noiseAdjusted.incrementAndGet();
-            return new int[] { Math.round(radius * rf), Math.round(volume * vf) };
+            return Math.min(Math.round(radius * rf), Math.max(radius, LoudLogic.loudRadius - 1));
         } catch (Throwable t) {
             Stats.errors.incrementAndGet();
-            return new int[] { radius, volume };
+            return radius;
+        }
+    }
+
+    /** Volume to use for a noise whose ORIGINAL radius was `originalRadius`. */
+    public static int volume(Object selfObj, int volume, int originalRadius) {
+        try {
+            float load = load(selfObj);
+            if (load < 0f || originalRadius >= LoudLogic.loudRadius) return volume;
+            return Math.round(volume * volumeFactor(load));
+        } catch (Throwable t) {
+            Stats.errors.incrementAndGet();
+            return volume;
         }
     }
 }

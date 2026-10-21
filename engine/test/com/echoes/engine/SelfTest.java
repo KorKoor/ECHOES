@@ -120,8 +120,8 @@ public class SelfTest {
         check("noise: full load = 1.25 radius", Math.abs(NoiseLogic.radiusFactor(1.0f) - 1.25f) < 1e-6);
         check("noise: over capacity is capped", Math.abs(NoiseLogic.radiusFactor(3.0f) - 1.25f) < 1e-6);
         check("noise: volume +15 % at full load", Math.abs(NoiseLogic.volumeFactor(1.0f) - 1.15f) < 1e-6);
-        int[] same = NoiseLogic.adjust("not a player", 20, 10);
-        check("noise: non-player or observe-only leaves values", same[0] == 20 && same[1] == 10);
+        check("noise: non-player or observe-only leaves values",
+                NoiseLogic.radius("not a player", 20) == 20 && NoiseLogic.volume("not a player", 10, 20) == 10);
         check("noise: calls are counted", Stats.noiseCalls.get() >= 1);
 
         // Loud-noise bookkeeping

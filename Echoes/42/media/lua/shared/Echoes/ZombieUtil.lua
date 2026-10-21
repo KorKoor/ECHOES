@@ -11,7 +11,10 @@ function ZombieUtil.players()
     local out = {}
     if isServer() then
         local l = getOnlinePlayers()
-        for i = 0, l:size() - 1 do out[#out + 1] = l:get(i) end
+        for i = 0, l:size() - 1 do
+            local p = l:get(i)
+            if not p:isDead() then out[#out + 1] = p end
+        end
     else -- single player or split-screen: every local player (a missing slot returns nil)
         local n = 1
         local okN, num = pcall(getNumActivePlayers)
@@ -65,9 +68,15 @@ local function scan(players, radius, limit)
     return found
 end
 
-function ZombieUtil.nearbyZombies(players, radius, limit)
+-- `noCache` forces a private scan (client modules scan for their own player only, a different set than the shared one).
+function ZombieUtil.nearbyZombies(players, radius, limit, noCache)
+    if noCache then
+        local out = {}
+        for _, e in ipairs(scan(players, radius, limit)) do out[#out + 1] = e.z end
+        return out
+    end
     local ok, now = pcall(getTimestampMs)
-    now = ok and now or 0
+    if not ok or type(now) ~= "number" then now = cache.at + CACHE_MS + 1 end -- no clock: always rescan
     local fresh = cache.found and now - cache.at < CACHE_MS and cache.radius >= radius and cache.limit >= limit
     if not fresh then
         cache.radius, cache.limit = math.max(radius, 45), math.max(limit, 150)

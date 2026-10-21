@@ -38,7 +38,11 @@ end
 
 local tickErrors = 0
 
+local everSet = false -- true once this module has written to the tripping state
+
 local function resetTripping()
+    if not everSet then return end -- never touch vanilla state we never changed
+    everSet = false
     local player = getPlayer()
     if player then
         local stats = player:getStats()
@@ -57,6 +61,7 @@ local function onTick()
     if demoUntil > getTimestampMs() then amp = 0.15 end
     local angle = amp * math.sin(t * 2 * math.pi * 0.30) + 0.4 * amp * math.sin(t * 2 * math.pi * 0.17)
     local stats = player:getStats()
+    everSet = true
     stats:setTripping(true)
     stats:setTrippingRotAngle(angle)
     end)

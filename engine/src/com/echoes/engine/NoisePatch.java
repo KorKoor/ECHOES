@@ -9,8 +9,8 @@ public class NoisePatch {
     public static void enter(@Patch.This Object self,
                              @Patch.Argument(value = 0, readOnly = false) int radius,
                              @Patch.Argument(value = 1, readOnly = false) int volume) {
-        int[] r = NoiseLogic.adjust(self, radius, volume);
-        radius = r[0];
-        volume = r[1];
+        int original = radius;
+        radius = NoiseLogic.radius(self, original);
+        volume = NoiseLogic.volume(self, volume, original);
     }
 }

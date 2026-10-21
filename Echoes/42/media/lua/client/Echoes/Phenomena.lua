@@ -6,8 +6,6 @@
 
 require "Echoes/Core"
 
-local Log = Echoes.Log
-
 local Phenomena = {}
 Echoes.Phenomena = Phenomena
 
@@ -36,23 +34,24 @@ end
 -- door_ajar -------------------------------------------------------------------------------------
 local function runDoorAjar(player, near)
     local pnum = player:getPlayerNum()
-    local found = eachNearbySquare(player, 80, function(sq)
-        local d = Echoes.doorAt(sq)
-        if d and farEnough(player, sq, 6) and not sq:isCouldSee(pnum)
-            and not d:IsOpen() and not d:isLocked() and not d:isBarricaded()
-            and Echoes.isInteriorDoor(d) then -- never a front door: it could let zombies into the player's base
-            return { sq = sq, door = d }
-        end
-    end, near)
-    if not found then return nil end
-    found.door:ToggleDoorSilent()
+    local c = near or player
+    local candidates = Echoes.doorSquares(math.floor(c:getX()), math.floor(c:getY()), near and near:getZ() or player:getZ(),
+        RADIUS, function(sq, d)
+            return farEnough(player, sq, 6) and not sq:isCouldSee(pnum)
+                and not d:IsOpen() and not d:isLocked() and not d:isBarricaded()
+                and Echoes.isInteriorDoor(d) -- never a front door: it could let zombies into the player's base
+        end)
+    if #candidates == 0 then return nil end
+    local sq = candidates[1 + ZombRand(#candidates)]
+    local door = Echoes.doorAt(sq)
+    door:ToggleDoorSilent()
     -- Faint creak, quieter than a real door, scaled by acoustics.
     local names = Echoes.Sounds.resolve("doorOpen", { "DoorOpen" }, { "dooropen", "door_open" }, { "car", "vehicle", "garage" })
-    local f = Echoes.Acoustics.factor(found.sq, player, { maxDist = 20 })
+    local f = Echoes.Acoustics.factor(sq, player, { maxDist = 20 })
     if f > 0.03 then
-        Echoes.Sounds.playAt(found.sq:getX() + 0.5, found.sq:getY() + 0.5, found.sq:getZ(), names, 0.35 * f, 0.08)
+        Echoes.Sounds.playAt(sq:getX() + 0.5, sq:getY() + 0.5, sq:getZ(), names, 0.35 * f, 0.08)
     end
-    return found.sq
+    return sq
 end
 
 -- light_flicker ----------------------------------------------------------------------------------

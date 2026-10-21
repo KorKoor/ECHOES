@@ -3,6 +3,7 @@
 -- Sound kinds are only played locally by an emitter: they never attract zombies.
 
 require "Echoes/Core"
+require "Echoes/ZombieUtil"
 
 local Log, Config = Echoes.Log, Echoes.Config
 
@@ -36,14 +37,7 @@ local function memory(player)
 end
 
 local function zombiesNear(player, radius)
-    local list = getCell():getZombieList()
-    local px, py = player:getX(), player:getY()
-    for i = 0, list:size() - 1 do
-        local z = list:get(i)
-        local dx, dy = z:getX() - px, z:getY() - py
-        if dx * dx + dy * dy <= radius * radius then return true end
-    end
-    return false
+    return #Echoes.ZombieUtil.nearbyZombies({ player }, radius, 1, true) > 0
 end
 
 local function candidates(kind)
@@ -94,24 +88,22 @@ local function ringSquare(player, minD, maxD, behind)
     return getCell():getGridSquare(x, y, player:getZ())
 end
 
--- A square that holds a door, so a door sound always has a physical source. Prefers unseen ones.
+-- A square that holds a door, so a door sound always has a physical source. Prefers unseen ones, 6..14 tiles away.
 local function findDoorSquare(player)
-    local cell, pnum = getCell(), player:getPlayerNum()
+    local pnum = player:getPlayerNum()
     local px, py, pz = math.floor(player:getX()), math.floor(player:getY()), player:getZ()
-    local best
-    for _ = 1, 60 do
-        local sq = cell:getGridSquare(px + ZombRand(-MAX_DIST, MAX_DIST + 1),
-            py + ZombRand(-MAX_DIST, MAX_DIST + 1), pz)
-        if sq and Echoes.doorAt(sq) then
-            local dx, dy = sq:getX() - px, sq:getY() - py
-            local d2 = dx * dx + dy * dy
-            if d2 >= MIN_DIST * MIN_DIST and d2 <= MAX_DIST * MAX_DIST then
-                if not sq:isCouldSee(pnum) then return sq end
-                best = best or sq
-            end
+    local all = Echoes.doorSquares(px, py, pz, MAX_DIST)
+    local unseen, seen = {}, {}
+    for _, sq in ipairs(all) do
+        local dx, dy = sq:getX() - px, sq:getY() - py
+        local d2 = dx * dx + dy * dy
+        if d2 >= MIN_DIST * MIN_DIST and d2 <= MAX_DIST * MAX_DIST then
+            if sq:isCouldSee(pnum) then seen[#seen + 1] = sq else unseen[#unseen + 1] = sq end
         end
     end
-    return best
+    local pool = #unseen > 0 and unseen or seen
+    if #pool == 0 then return nil end
+    return pool[1 + ZombRand(#pool)]
 end
 
 local function findWalkableSquare(player, behind)
@@ -129,13 +121,9 @@ end
 
 -- A door within `radius` tiles of a square (for door-themed sounds at a remembered place); nil if none.
 local function findDoorNear(sq, radius)
-    local cell = getCell()
-    local sx, sy, sz = sq:getX(), sq:getY(), sq:getZ()
-    for _ = 1, 40 do
-        local c = cell:getGridSquare(sx + ZombRand(-radius, radius + 1), sy + ZombRand(-radius, radius + 1), sz)
-        if c and Echoes.doorAt(c) then return c end
-    end
-    return nil
+    local all = Echoes.doorSquares(sq:getX(), sq:getY(), sq:getZ(), radius)
+    if #all == 0 then return nil end
+    return all[1 + ZombRand(#all)]
 end
 
 -- Remembered square from a past phenomenon (haunted Places are handled in evaluate).
@@ -249,7 +237,7 @@ function Director.evaluate(force)
         usedPlace = placeSq ~= nil
         local behind = (not kind.needsDoor) and ZombRandFloat(0, 1) < (0.25 + 0.35 * pressure)
         if remembered and kind.needsDoor then -- a door sound needs a door: look near the remembered spot
-            remembered = findDoorNear(remembered, 6) or remembered
+            remembered = findDoorNear(remembered, 6) -- nil when there is none: then a door elsewhere is chosen below
         end
         sq = remembered
         if not sq then

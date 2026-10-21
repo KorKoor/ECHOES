@@ -71,7 +71,7 @@ public final class VisionLogic {
                 public boolean targetIsPlayer() { return o instanceof IsoPlayer; }
                 public boolean sneaking() { return o instanceof IsoPlayer && ((IsoPlayer) o).isSneaking(); }
                 public float light() {
-                    if (!(o instanceof IsoPlayer)) return -1f;
+                    if (!Options.stealthUseLight || !(o instanceof IsoPlayer)) return -1f;
                     IsoGridSquare sq = o.getCurrentSquare();
                     return sq == null ? -1f : sq.getLightLevel(((IsoPlayer) o).getPlayerNum());
                 }
@@ -79,7 +79,15 @@ public final class VisionLogic {
                     double dx = o.getX() - z.getX(), dy = o.getY() - z.getY();
                     return Math.sqrt(dx * dx + dy * dy);
                 }
-                public boolean zombieFacing() { return z.isFacingTarget(); }
+                // Geometric: is the target within about 70 degrees of the direction the zombie is facing? (isFacingTarget()
+                // depends on the zombie's CURRENT target, which a first sighting does not have yet.)
+                public boolean zombieFacing() {
+                    double dx = o.getX() - z.getX(), dy = o.getY() - z.getY();
+                    double len = Math.sqrt(dx * dx + dy * dy);
+                    if (len < 1e-6) return true;
+                    double dot = (dx * z.getForwardDirectionX() + dy * z.getForwardDirectionY()) / len;
+                    return dot > 0.34;
+                }
             };
             double c = concealment(v) * Options.stealthStrength;
             return decide(System.identityHashCode(z), c, System.currentTimeMillis());

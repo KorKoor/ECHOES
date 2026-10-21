@@ -19,7 +19,7 @@ public final class Occlusion {
         IsoCell cell = world == null ? null : world.getCell();
         if (cell == null) return 1.0f;
 
-        int barriers = countBarriers(cell, x0, y0, z0, x1, y1);
+        float barriers = countBarriers(cell, x0, y0, z0, x1, y1);
         float f = (float) Math.pow(Options.wallFactor, barriers);
 
         int dz = Math.abs(z1 - z0);
@@ -33,7 +33,7 @@ public final class Occlusion {
     }
 
     /** Blocked edges along the straight line; squares that are not loaded count as half a barrier. */
-    static int countBarriers(IsoCell cell, int x0, int y0, int z, int x1, int y1) {
+    static float countBarriers(IsoCell cell, int x0, int y0, int z, int x1, int y1) {
         int dx = Math.abs(x1 - x0), dy = Math.abs(y1 - y0);
         int steps = Math.max(dx, dy);
         int sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1;
@@ -64,6 +64,6 @@ public final class Occlusion {
             }
             prev = cur;
         }
-        return barriers + unloaded / 2;
+        return barriers + unloaded * 0.5f; // an unloaded square counts as half a barrier (same as the Lua fallback)
     }
 }

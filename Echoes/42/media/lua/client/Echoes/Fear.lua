@@ -17,8 +17,16 @@ local beating = false
 local chainGen = 0
 
 -- Called by the Director when something unexplained happens.
+-- A startle is immediate: it lifts the level at once (so the heartbeat can start) instead of waiting for the next
+-- once-per-game-minute update, which with a smoothing of 50 % could never reach the heartbeat threshold.
 function Fear.shock(v)
-    shockValue = Echoes.clamp(shockValue + (v or 0.2), 0, 1)
+    v = v or 0.2
+    shockValue = Echoes.clamp(shockValue + v, 0, 1)
+    Fear.level = Echoes.clamp(Fear.level + 1.6 * v, 0, 1)
+    if Config.isEnabled("Fear") and Fear.level >= 0.35 and not beating then
+        beating = true
+        Echoes.Timer.after(0, function() Fear.startBeat() end)
+    end
 end
 
 local function compute(player)
@@ -54,6 +62,11 @@ local function beat(gen)
         Fear.lastBeat = getTimestampMs()
     end)
     Echoes.Timer.after(math.floor(1150 - 650 * Fear.level), function() beat(gen) end)
+end
+
+function Fear.startBeat()
+    beating = true
+    beat(chainGen)
 end
 
 Events.OnGameStart.Add(function()

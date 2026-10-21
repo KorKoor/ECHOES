@@ -21,6 +21,8 @@ public final class Options {
     /** Zombie vision: OFF by default (observe only). When on, hard-to-see players are sometimes not spotted. */
     public static volatile boolean stealth = false;
     public static volatile float stealthStrength = 1.0f;
+    /** Per-player lighting exists only on a client or single player; Lua turns this off on a dedicated server. */
+    public static volatile boolean stealthUseLight = true;
     /** Closer than this many tiles nothing is concealed; the concealment ramps up over the next stealthRampTiles. */
     public static volatile float stealthNearTiles = 3.0f;
     public static volatile float stealthRampTiles = 10.0f;
@@ -41,6 +43,7 @@ public final class Options {
             case "hearingOcclusion": hearingOcclusion = v != 0; return true;
             case "weatherHearing": weatherHearing = v != 0; return true;
             case "stealth": stealth = v != 0; return true;
+            case "stealthLight": stealthUseLight = v != 0; return true;
             case "stealthStrength": stealthStrength = (float) Math.max(0, Math.min(1, v)); return true;
             case "stealthNear": stealthNearTiles = (float) Math.max(0, Math.min(30, v)); return true;
             case "stealthRamp": stealthRampTiles = (float) Math.max(1, Math.min(60, v)); return true;

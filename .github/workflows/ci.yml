@@ -15,8 +15,10 @@ jobs:
       - run: pip install lupa
       - name: Lua syntax
         run: python scripts/check_lua_syntax.py
-      - name: Mocked-API smoke test (12 seeds)
+      - name: Mocked-API smoke test (12 seeds, with and without the Java engine)
         run: python tests/run_mock.py 12
+      - name: Line coverage of the smoke test
+        run: python tests/coverage.py
 
   java:
     runs-on: ubuntu-latest

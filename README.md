@@ -18,7 +18,7 @@ Mod modular para **Project Zomboid Build 42** centrado en tensión, sentidos y s
 - **Sentidos:** pistas direccionales de amenazas reales no vistas, incertidumbre posicional en la oscuridad, acústica con muros/puertas/pisos/clima/cabina.
 - **Interacción:** "Listen at the door" (escuchar tras una puerta).
 - **IA de zombis:** búsqueda por habitaciones, **rastro de olor** (sangre, esfuerzo; la lluvia lo borra), atracción por sangre del suelo, **alerta de manada**, **personalidad individual** (olfato, persistencia, audacia), oído físico vía Java.
-- **Tu personaje:** respiración agitada, **miedo** (latido, bordes oscuros), **mareo** (experimental), presión psicológica opcional.
+- **Tu personaje:** respiración agitada, **miedo** (latido del corazón; los bordes de pantalla que laten requieren la capa visual experimental), **sordera tras disparos**, **mareo** (experimental), presión psicológica opcional.
 - **Mundo:** alarmas que duran horas y atraen zombis, luces de actividad humana, disparos lejanos, decaimiento eléctrico por sala, goteras, historias ambientales.
 - **Presencias:** sonidos y fenómenos ambiguos con lugares "encantados" que **escalan por etapas** (pasos que acaban viniendo hacia ti), siluetas fugaces (experimental).
 

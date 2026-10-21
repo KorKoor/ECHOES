@@ -31,8 +31,8 @@ end
 local function loadAll()
     if allNames then return allNames end
     local okT, now = pcall(getTimestampMs)
-    now = okT and now or 0
-    if discoveryFailedAt and now - discoveryFailedAt < RETRY_MS then return {} end
+    if not okT or type(now) ~= "number" then now = nil end
+    if discoveryFailedAt and now and now - discoveryFailedAt < RETRY_MS then return {} end
     local names = {}
     local ok, err = pcall(function()
         local cats = GameSounds.getCategories()
@@ -46,7 +46,7 @@ local function loadAll()
         end
     end)
     if not ok or #names == 0 then
-        discoveryFailedAt = now
+        discoveryFailedAt = now -- nil without a clock: then every call retries
         Echoes.Log.warn("sound discovery unavailable (retry in 60 s): " .. tostring(err))
         return {}
     end

@@ -4,6 +4,7 @@
 -- Nothing here reveals or hides anything beyond what the world already contains. UNTESTED.
 
 require "Echoes/Core"
+require "Echoes/ZombieUtil"
 
 local Log, Config = Echoes.Log, Echoes.Config
 
@@ -25,21 +26,17 @@ end
 
 -- Nearest zombie on the same level that is within hearing range and out of sight.
 local function nearestUnseen(player)
-    local list = getCell():getZombieList()
     local pnum = player:getPlayerNum()
-    local px, py, pz = player:getX(), player:getY(), player:getZ()
-    local best, bestD2, bestSq
-    for i = 0, list:size() - 1 do
-        local z = list:get(i)
-        local dx, dy = z:getX() - px, z:getY() - py
+    local pz = player:getZ()
+    for _, z in ipairs(Echoes.ZombieUtil.nearbyZombies({ player }, MAX_D, 40, true)) do -- nearest first
+        local dx, dy = z:getX() - player:getX(), z:getY() - player:getY()
         local d2 = dx * dx + dy * dy
-        if d2 >= MIN_D * MIN_D and d2 <= MAX_D * MAX_D and math.abs(z:getZ() - pz) < 0.5
-            and (not bestD2 or d2 < bestD2) then
+        if d2 >= MIN_D * MIN_D and math.abs(z:getZ() - pz) < 0.5 then
             local zsq = z:getCurrentSquare()
-            if zsq and not zsq:isCouldSee(pnum) then best, bestD2, bestSq = z, d2, zsq end
+            if zsq and not zsq:isCouldSee(pnum) then return z, zsq end
         end
     end
-    return best, bestSq
+    return nil
 end
 
 local function update(player)

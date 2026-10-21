@@ -80,3 +80,14 @@ Temblor visible de manos o del arma, cojera/tropiezos físicos (hay `setBumpType
 - **Sordera tras disparos** (`Body.lua` + `LoudPatch`): −60 % de oído para los sonidos de ECHOES durante 30 s y zumbido, salvo con protección auditiva.
 - **EchoesEngine 0.4.0:** oído físico de zombis; visión de zombis (observa, sigilo opcional); ruido del jugador por carga (observa, opcional); detección de ruidos fuertes. Todo medible con `EchoesEngine_stats()`.
 - **Infraestructura:** CI en GitHub (sintaxis Lua, humo con API simulada en 12 semillas, build y pruebas del JAR), traducciones ES/EN, informe F7, verificación cruzada con mods B42 reales.
+
+---
+
+# Valores vigentes tras las revisiones (sustituyen a cifras de secciones anteriores)
+
+- **Rastro de olor:** los puntos de menos de **5 minutos de juego** (`MIN_AGE_MIN`) no se siguen; los puntos a **menos de 7 casillas** de donde estás ahora tampoco (`SAFE_DIST`); el jugador quieto no "refresca" su punto, solo añade uno nuevo cada 10 min. Los rastros inactivos >90 min se olvidan.
+- **Búsqueda por habitaciones:** ventanas en **minutos de juego** (3 para empezar, 0,9 entre saltos); hasta `1 + floor(persistencia × 3)` saltos por zombi; 150 zombis candidatos (más cercanos primero); límite de 1,5 s en tiempo real.
+- **Decaimiento eléctrico:** se aplica a **una habitación cercana no vista y no habitada** por pasada; las que has pisado en los últimos 3 días quedan como las tienes.
+- **Alarma lejana:** renueva el estímulo cada **minuto de juego** mientras dura (2–5 h) y anuncia la sirena cada 10 min.
+- **Historias:** solo puertas interiores de edificios que no has visitado; se desbloquean al terminar o si se desactivan.
+- **Sordera:** el oído se evalúa con una ventana en tiempo real (30 s) en el momento de reproducir cada sonido; los sonidos propios (respiración, latido, zumbido) no se atenúan.

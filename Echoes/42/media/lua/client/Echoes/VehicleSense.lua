@@ -4,6 +4,7 @@
 -- Not implemented (no verified API): mirrors, rain on glass, dirt on windows. UNTESTED.
 
 require "Echoes/Core"
+require "Echoes/ZombieUtil"
 
 local Log, Config = Echoes.Log, Echoes.Config
 
@@ -30,12 +31,10 @@ local function update(player)
 
     local fx, fy = player:getForwardDirectionX(), player:getForwardDirectionY()
     local px, py, pz = player:getX(), player:getY(), player:getZ()
-    local list = getCell():getZombieList()
-    for i = 0, list:size() - 1 do
-        local z = list:get(i)
+    for _, z in ipairs(Echoes.ZombieUtil.nearbyZombies({ player }, 4.5, 20, true)) do -- nearest first
         local dx, dy = z:getX() - px, z:getY() - py
         local d2 = dx * dx + dy * dy
-        if d2 <= 20 and math.abs(z:getZ() - pz) < 1.0 and d2 > 0.01 then
+        if math.abs(z:getZ() - pz) < 1.0 and d2 > 0.01 then
             local d = math.sqrt(d2)
             local cos = (dx * fx + dy * fy) / d
             if cos < -0.35 then -- more than ~110 degrees behind the driver's heading

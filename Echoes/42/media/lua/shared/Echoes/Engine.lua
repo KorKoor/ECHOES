@@ -43,6 +43,8 @@ function Engine.apply()
     EchoesEngine_set("noiseStrength", Config.get("EngineNoiseStrength"))
     EchoesEngine_set("stealth", Config.isEnabled("EngineStealth") and 1 or 0)
     EchoesEngine_set("stealthStrength", Config.get("EngineStealthStrength"))
+    -- per-player lighting data exists only where a player is simulated locally, not on a dedicated server
+    EchoesEngine_set("stealthLight", isServer() and 0 or 1)
     Log.info("engine v" .. tostring(EchoesEngine_version()) .. " hearing=" .. tostring(on)
         .. " strength=" .. tostring(Config.get("EngineStrength")))
 end
