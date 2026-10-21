@@ -67,3 +67,9 @@ Con Debug activado.
 - **Lugares encantados:** tras un pico de pánico, volver a ese sitio: `phenomenon fired: ... place=<tema>/stage<N>`. Comprobar que sube de etapa y que en etapas altas los pasos se acercan; después se calma.
 - **Zombis con carácter:** observar que unos siguen el rastro desde lejos y otros ni lo notan; unos siguen buscando por varias habitaciones y otros se rinden. Si todos hacen lo mismo, enviar el log.
 - **Sangre:** tras una pelea con sangre en el suelo, algún zombi inactivo cercano debería acercarse a las manchas (`tracking: scent=`).
+
+## EchoesEngine 0.3–0.4 (observar primero)
+1. Tras 5–10 min de juego normal, ejecutar `EchoesEngine_stats()` (consola Lua o F7): enviar la línea completa. Dice cuántas veces se llama a `getSoundAttract`, `spotted` y `addWorldSoundUnlessInvisible`, el radio medio de tu ruido y cuántos ruidos fuertes (`loudEvents`) hubo.
+2. **Disparo sin protección:** dispara un arma. Debe aparecer `loudEvents>=1`; el oído de los sonidos de ECHOES baja unos segundos (y zumbido si existe sonido). Con orejeras puestas no debe contar. Enviar el resultado.
+3. **Carga:** con `EngineNoise` activado, correr con la mochila llena frente a correr ligero: el `meanRadius` y los zombis atraídos deberían subir.
+4. **Sigilo (opcional):** `EngineStealth` activado + `EngineStealthStrength` 0,6: agáchate de noche a >6 casillas de un zombi que no te ha visto; mira `skipped` en el contador.

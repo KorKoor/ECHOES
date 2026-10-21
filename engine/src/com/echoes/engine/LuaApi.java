@@ -27,6 +27,17 @@ public final class LuaApi {
         Stats.reset();
     }
 
+    /** Milliseconds since the local player made a loud noise without ear protection, or -1 if none yet. */
+    @LuaMethod(name = "EchoesEngine_msSinceLoud", global = true)
+    public static double msSinceLoud() {
+        return LoudLogic.msSince(System.currentTimeMillis());
+    }
+
+    @LuaMethod(name = "EchoesEngine_lastLoudRadius", global = true)
+    public static double lastLoudRadius() {
+        return LoudLogic.radius();
+    }
+
     /** Sound transmission factor 0..1 between two tile coordinates (same model zombies use). */
     @LuaMethod(name = "EchoesEngine_occlusion", global = true)
     public static double occlusion(double x0, double y0, double z0, double x1, double y1, double z1) {

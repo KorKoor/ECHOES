@@ -110,3 +110,13 @@ Parche sobre `zombie.characters.IsoPlayer#addWorldSoundUnlessInvisible(int radiu
 - **Por defecto solo cuenta** llamadas y radio medio (`noise[calls=… adjusted=… meanRadius=…]` en `EchoesEngine_stats()`): nos dirá con qué frecuencia y con qué radios hace ruido el jugador en el juego real.
 - **Con `EngineNoise` activo:** un personaje cargado por encima del 50 % de su capacidad (`getInventoryWeight()/getMaxWeight()`) hace más ruido: hasta **+25 % de radio y +15 % de volumen** a plena carga. Nunca lo hace más silencioso que vanilla ni toca a los zombis.
 - Verificado: la función de factores y el no-efecto para no-jugadores (6 pruebas). Sin verificar: quién llama a ese método (pasos, acciones…), por lo que el efecto real depende de lo que muestre el contador.
+
+---
+
+# EchoesEngine 0.4.0 — sordera tras disparos
+
+Parche sobre `zombie.WorldSoundManager#addSound(Object source, int x, int y, int z, int radius, int volume, …)` (todas las sobrecargas empiezan por esos 6 parámetros: `source`=arg 0, `radius`=arg 4). **Solo observa:** si `source` es el **jugador local**, el radio ≥ 35 y no lleva protección auditiva (`getWornItemsHearingMultiplier() < 0,8`), anota cuándo y con qué radio. No modifica el juego.
+
+Lua (`Body.lua`) lo usa: durante **30 s** (más fuerte cuanto mayor el radio, decreciendo linealmente) el oído baja hasta un −60 % para los sonidos de ECHOES y suena un **zumbido** (`tinnitus`/`ringing`, si el juego tiene un sonido así). API: `EchoesEngine_msSinceLoud()`, `EchoesEngine_lastLoudRadius()`.
+
+Sin verificar: que los disparos pasen por `WorldSoundManager.addSound` con el jugador como fuente (el contador `loudEvents` de `EchoesEngine_stats()` lo dirá), el umbral 35 y los 30 s, y qué valor devuelve `getWornItemsHearingMultiplier()` con orejeras. No puedo atenuar el sonido *vanilla* del juego (solo lo que reproduce ECHOES) sin conocer su pipeline de audio: pendiente del inventario de clases de audio.

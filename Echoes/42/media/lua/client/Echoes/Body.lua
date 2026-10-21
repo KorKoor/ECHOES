@@ -7,7 +7,7 @@ local Log, Config = Echoes.Log, Echoes.Config
 local Body = {}
 Echoes.Body = Body
 
-Body.state = { winded = false, tremor = 0, cold = false, hearing = 1.0, recovery = 0 }
+Body.state = { winded = false, tremor = 0, cold = false, hearing = 1.0, recovery = 0, deaf = 0 }
 
 local lastRunHours = -1000
 
@@ -17,6 +17,19 @@ local function coldCore(player)
     end)
     if ok and type(core) == "number" then return core end
     return nil
+end
+
+-- Temporary deafness after a loud noise you made yourself without ear protection (needs the Java engine, which
+-- watches WorldSoundManager.addSound). Lasts 30 s, stronger for louder noises, fading linearly.
+local DEAF_MS = 30000
+
+local function deafness()
+    if not EchoesEngine_msSinceLoud then return 0 end
+    local ok, ms = pcall(EchoesEngine_msSinceLoud)
+    if not ok or type(ms) ~= "number" or ms < 0 or ms > DEAF_MS then return 0 end
+    local okr, radius = pcall(EchoesEngine_lastLoudRadius)
+    radius = (okr and type(radius) == "number") and radius or 40
+    return Echoes.clamp((radius - 30) / 70, 0.3, 1.0) * (1.0 - ms / DEAF_MS)
 end
 
 local function update(player)
@@ -37,7 +50,12 @@ local function update(player)
     local shiver = core and Echoes.clamp((36.5 - core) / 2.0, 0, 1) or 0
     st.tremor = Echoes.clamp(0.4 * panic + 0.25 * stress + 0.2 * fatigue + 0.3 * shiver, 0, 1)
     -- Moderately dulled perception of ECHOES sounds when panicking or out of breath.
-    st.hearing = 1.0 - 0.12 * panic - (st.winded and 0.08 or 0)
+    st.deaf = deafness()
+    st.hearing = Echoes.clamp(1.0 - 0.12 * panic - (st.winded and 0.08 or 0) - 0.6 * st.deaf, 0.1, 1.0)
+    if st.deaf > 0.05 and ZombRandFloat(0, 1) < 0.5 then -- ringing in the ears, if the game has such a sound
+        local ring = Echoes.Sounds.resolve("ringing", {}, { "tinnitus", "ringing", "earring" }, { "phone", "door", "bell", "alarm" })
+        Echoes.Sounds.playAt(player:getX(), player:getY(), player:getZ(), ring, 0.15 + 0.35 * st.deaf, 0.01)
+    end
     -- Gradual recovery: minutes since the last run, capped at 30 game minutes.
     st.recovery = Echoes.clamp((now - lastRunHours) * 60 / 30, 0, 1)
 

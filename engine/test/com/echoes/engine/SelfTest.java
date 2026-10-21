@@ -113,6 +113,16 @@ public class SelfTest {
         check("noise: non-player or observe-only leaves values", same[0] == 20 && same[1] == 10);
         check("noise: calls are counted", Stats.noiseCalls.get() >= 1);
 
+        // Loud-noise bookkeeping
+        LoudLogic.reset();
+        check("loud: nothing recorded yet", LoudLogic.msSince(1000) == -1);
+        LoudLogic.record(10, 1000);
+        check("loud: quiet noise ignored", LoudLogic.msSince(2000) == -1);
+        LoudLogic.record(80, 5000);
+        check("loud: gunshot recorded (" + LoudLogic.msSince(7500) + " ms ago)", LoudLogic.msSince(7500) == 2500 && LoudLogic.radius() == 80);
+        LoudLogic.observe("not a player", 90);
+        check("loud: non-player source never throws or records", LoudLogic.msSince(7500) == 2500);
+
         System.out.println(Stats.summary());
         System.out.println(failures == 0 ? "ALL PASSED" : failures + " FAILED");
         if (failures > 0) System.exit(1);

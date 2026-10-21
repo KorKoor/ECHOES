@@ -13,5 +13,6 @@ public class WorldSoundManager {
         public boolean sourceIsZombie;
         public boolean sourceIsPlayer;
     }
+    public WorldSound addSound(Object source, int x, int y, int z, int radius, int volume) { return null; }
     public float getSoundAttract(WorldSound sound, zombie.characters.IsoZombie zom) { return 0f; }
 }

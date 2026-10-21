@@ -83,6 +83,8 @@ EchoesEngine_version = function() return "0.1.0" end
 EchoesEngine_set = function(k, v) played[#played+1] = "SET:" .. k .. "=" .. tostring(v) end
 EchoesEngine_stats = function() return "stats" end
 EchoesEngine_occlusion = function() return 0.55 end
+EchoesEngine_msSinceLoud = function() return 5000 end
+EchoesEngine_lastLoudRadius = function() return 80 end
 for _, f in ipairs({ "shared/Echoes/Core.lua","shared/Echoes/WorldEvents.lua","client/Echoes/Timer.lua","client/Echoes/Sounds.lua","client/Echoes/Engine.lua","shared/Echoes/ZombieUtil.lua",
   "client/Echoes/Weather.lua","client/Echoes/Acoustics.lua","client/Echoes/Body.lua","client/Echoes/Psyche.lua",
   "client/Echoes/Phenomena.lua","client/Echoes/Places.lua","client/Echoes/Stories.lua","client/Echoes/Senses.lua","client/Echoes/VehicleSense.lua","client/Echoes/Interaction.lua","client/Echoes/Visual.lua","client/Echoes/Director.lua","client/Echoes/RoomDecay.lua","client/Echoes/Fear.lua","client/Echoes/Dizzy.lua","server/Echoes/ZombieAwareness.lua","server/Echoes/Tracking.lua","client/Echoes/Debug.lua" }) do
@@ -98,6 +100,7 @@ Echoes.Stories.createLockedIn(player)
 -- scent: walk a trail, then check a distant idle zombie is sent along it
 zresp = false; zmd = {}
 for step = 1, 6 do player.getX = function() return 100.5 + step * 2 end; fire("EveryOneMinute") end
+print("DEAF", Echoes.Body.state.deaf, "HEARING", Echoes.Body.state.hearing)
 print("FEAR", Echoes.Fear.level, "DIZZY", Echoes.Dizzy.level, "TRIP", trip.on, trip.angle)
 fire("OnKeyPressed", 66)
 for i = 1, 3 do tms = tms + 300; for _, f in ipairs(handlers.OnTick or {}) do f() end end
