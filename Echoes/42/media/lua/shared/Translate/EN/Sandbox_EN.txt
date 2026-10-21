@@ -23,6 +23,8 @@ Sandbox_EN = {
     Sandbox_Echoes_DizzinessEnabled = "Dizziness: screen sway after exhaustion, blood loss, cold (experimental)",
     Sandbox_Echoes_ScentStrength = "Scent strength multiplier (0-2)",
     Sandbox_Echoes_DizzinessScale = "Dizziness amplitude multiplier (0-3)",
+    Sandbox_Echoes_EngineStealthEnabled = "Java engine: zombies may fail to spot a sneaking or poorly lit player at range (experimental)",
+    Sandbox_Echoes_EngineStealthStrength = "Java engine: stealth strength (0-1)",
     Sandbox_Echoes_Frequency = "Phenomena frequency",
     Sandbox_Echoes_Debug = "Debug logging",
 }

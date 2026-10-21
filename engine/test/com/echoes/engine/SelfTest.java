@@ -1,7 +1,6 @@
 package com.echoes.engine;
 
 import zombie.WorldSoundManager;
-import zombie.characters.IsoZombie;
 import zombie.iso.IsoCell;
 import zombie.iso.IsoGridSquare;
 import zombie.iso.IsoWorld;
@@ -35,11 +34,11 @@ public class SelfTest {
         final Fake cell = new Fake();
         @Override public IsoCell getCell() { return cell; }
     }
-    static class Zed extends IsoZombie {
-        final Sq sq; final short id;
-        Zed(Sq sq, int id) { this.sq = sq; this.id = (short) id; }
-        @Override public zombie.iso.IsoGridSquare getCurrentSquare() { return sq; }
-        @Override public short getOnlineID() { return id; }
+    static class Zed implements HearingLogic.ZView {
+        final Sq sq; final int id;
+        Zed(Sq sq, int id) { this.sq = sq; this.id = id; }
+        public zombie.iso.IsoGridSquare square() { return sq; }
+        public int id() { return id; }
     }
     static class Climate extends ClimateManager {
         float rain = 0f;
@@ -68,17 +67,42 @@ public class SelfTest {
         s.x = 0; s.y = 0; s.z = 0;
         Zed behindWalls = new Zed(new Sq(w.cell, 12, 0, 0), 1);
         Zed inOpen = new Zed(new Sq(w.cell, 3, 0, 0), 2);
-        float adjOpen = HearingLogic.adjust(100f, s, inOpen);
-        float adjWalls = HearingLogic.adjust(100f, s, behindWalls);
+        float adjOpen = HearingLogic.adjustCore(100f, s, inOpen);
+        float adjWalls = HearingLogic.adjustCore(100f, s, behindWalls);
         check("zombie in the open keeps full attraction (" + adjOpen + ")", Math.abs(adjOpen - 100f) < 1e-3);
         check("zombie behind two walls is less attracted (" + adjWalls + ")", adjWalls < 40f && adjWalls > 5f);
-        check("zero stays zero", HearingLogic.adjust(0f, s, behindWalls) == 0f);
+        check("zero stays zero", HearingLogic.adjustCore(0f, s, behindWalls) == 0f);
         check("bad argument types never throw", HearingLogic.adjust(50f, "x", "y") == 50f);
 
         Options.set("strength", 0.5);
-        float half = HearingLogic.adjust(100f, s, behindWalls);
+        float half = HearingLogic.adjustCore(100f, s, behindWalls);
         check("strength 0.5 halves the reduction (" + half + ")", half > adjWalls && half < 100f);
         Options.set("strength", 1.0);
+
+        // Vision concealment maths (pure function)
+        class V implements VisionLogic.View {
+            boolean player = true, sneak = false, facing = true; float light = 1f; double dist = 10;
+            public boolean targetIsPlayer() { return player; }
+            public boolean sneaking() { return sneak; }
+            public float light() { return light; }
+            public double distance() { return dist; }
+            public boolean zombieFacing() { return facing; }
+        }
+        V v = new V();
+        check("lit, standing, facing, far: no concealment", VisionLogic.concealment(v) == 0.0);
+        v.sneak = true;
+        double sneakFar = VisionLogic.concealment(v);
+        check("sneaking far away conceals (" + sneakFar + ")", sneakFar > 0.1 && sneakFar <= 0.9);
+        v.light = 0.0f; v.facing = false;
+        double worst = VisionLogic.concealment(v);
+        check("sneak + dark + not facing is capped at 0.9 and higher (" + worst + ")", worst > sneakFar && worst <= 0.9);
+        v.dist = 2;
+        check("close range is never concealed", VisionLogic.concealment(v) == 0.0);
+        v.dist = 100; v.player = false;
+        check("non-player targets are never concealed", VisionLogic.concealment(v) == 0.0);
+        check("shouldSkip is false when stealth is off", !VisionLogic.shouldSkip("z", "o", false));
+        check("forced sightings are never skipped", !VisionLogic.shouldSkip("z", "o", true));
+        check("spotted calls are counted", Stats.spottedCalls.get() >= 2);
 
         System.out.println(Stats.summary());
         System.out.println(failures == 0 ? "ALL PASSED" : failures + " FAILED");

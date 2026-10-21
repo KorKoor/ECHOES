@@ -1,5 +1,6 @@
 package zombie.characters;
 
-public class IsoZombie extends zombie.iso.IsoMovingObject {
+public final class IsoZombie extends IsoGameCharacter {
     public short getOnlineID() { return 0; }
+    public boolean isFacingTarget() { return false; }
 }

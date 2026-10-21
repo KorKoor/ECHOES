@@ -83,3 +83,20 @@ Coste controlado: caché de 400 ms por (sonido, zombi), líneas largas solo comp
 
 ## Siguientes capacidades (tras tus datos de `[EchoesInv]`)
 Percepción visual de zombis (luz, cono, sigilo), reverberación por sala, inclinación/cámara según lo que exponga Viewpoint, presencias en el mundo y post-proceso propio.
+
+---
+
+# EchoesEngine 0.2.0 — visión de zombis (observar primero)
+
+Parche sobre `zombie.characters.IsoZombie#spotted(IsoMovingObject, boolean)` (firma verificada; `IsoZombie` es `final`, hereda de `IsoGameCharacter`). `skipOn`: devolver `true` hace que el zombi **ignore esa detección**.
+
+**Por defecto solo observa:** cuenta llamadas totales, forzadas y saltadas (`EchoesEngine_stats()` → `vision[spotted=… forced=… skipped=…]`). Con eso, mañana sabremos *cuántas veces por segundo* llama el motor a `spotted` y cuánto pesa lo forzado, antes de tocar nada.
+
+**Modo sigilo (Sandbox `EngineStealth`, apagado):** una detección *no forzada* de un **jugador** puede ignorarse con probabilidad `c` (máx. 0,9) si el jugador es difícil de ver:
+- agachado/sigiloso (+0,25);
+- en una casilla oscura, `getLightLevel < 0,3` (hasta +0,30);
+- el zombi no lo está encarando (+0,15);
+- todo ello multiplicado por la distancia: a menos de 3 casillas **nunca** hay ocultación, y crece hasta 13 casillas.
+Las detecciones forzadas, otros objetivos y cualquier error → no se omite nada. El motor ya penaliza visión por oscuridad (hasta 5), niebla (7) y lluvia: este modo *suma*, así que empezar con `EngineStealthStrength` bajo (0,6 por defecto) y subir según lo que se sienta.
+
+**Verificado:** 8 pruebas nuevas de la función `concealment` (sin ocultación a plena luz, límites, cercanía, objetivos no jugador, contadores). **No verificado:** cuántas veces se llama `spotted`, si saltarse la llamada produce "pérdida de objetivo" natural o un comportamiento raro, y si el servidor tiene datos de luz (en MP la luz solo existe en el cliente; la excepción se traga y no se oculta nada).

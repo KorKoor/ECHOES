@@ -28,18 +28,43 @@ public final class HearingLogic {
     /** Called whenever an option changes so stale factors are not reused. */
     public static void clearCache() { cache.clear(); }
 
+    /** Seam so the logic can be tested without the (final) IsoZombie class. */
+    public interface ZView {
+        IsoGridSquare square();
+        int id();
+    }
+
     public static float adjust(float result, Object soundObj, Object zomObj) {
         if (!(Options.hearingOcclusion || Options.weatherHearing) || result <= 0f) return result;
         if (Stats.consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) return result;
+        try {
+            final IsoZombie z = (IsoZombie) zomObj;
+            if (z == null) return result;
+            return adjustCore(result, (WorldSoundManager.WorldSound) soundObj, new ZView() {
+                public IsoGridSquare square() { return z.getCurrentSquare(); }
+                public int id() { return z.getOnlineID(); }
+            });
+        } catch (Throwable t) {
+            return failed(result, t);
+        }
+    }
+
+    private static float failed(float result, Throwable t) {
+        Stats.errors.incrementAndGet();
+        if (++Stats.consecutiveErrors == MAX_CONSECUTIVE_ERRORS) {
+            System.out.println("[EchoesEngine] hearing patch disabled after repeated errors: " + t);
+        }
+        return result;
+    }
+
+    public static float adjustCore(float result, WorldSoundManager.WorldSound s, ZView z) {
         long t0 = System.nanoTime();
         try {
-            WorldSoundManager.WorldSound s = (WorldSoundManager.WorldSound) soundObj;
-            IsoZombie z = (IsoZombie) zomObj;
             if (s == null || z == null) return result;
             Stats.calls.incrementAndGet();
 
             long key = (((long) s.x * 73856093L) ^ ((long) s.y * 19349663L) ^ ((long) s.z * 83492791L)) << 16
-                    ^ (z.getOnlineID() & 0xffffL);
+                    ^ (z.id() & 0xffffL);
             long now = System.currentTimeMillis();
             Entry e = cache.get(key);
             float f;
@@ -57,20 +82,16 @@ public final class HearingLogic {
             Stats.factorMicros.addAndGet((long) (f * 1_000_000));
             return result * f;
         } catch (Throwable t) {
-            Stats.errors.incrementAndGet();
-            if (++Stats.consecutiveErrors == MAX_CONSECUTIVE_ERRORS) {
-                System.out.println("[EchoesEngine] hearing patch disabled after repeated errors: " + t);
-            }
-            return result;
+            return failed(result, t);
         } finally {
             Stats.nanos.addAndGet(System.nanoTime() - t0);
         }
     }
 
-    private static float compute(WorldSoundManager.WorldSound s, IsoZombie z) {
+    private static float compute(WorldSoundManager.WorldSound s, ZView z) {
         float f = 1.0f;
         if (Options.hearingOcclusion) {
-            IsoGridSquare zsq = z.getCurrentSquare();
+            IsoGridSquare zsq = z.square();
             if (zsq != null) f *= Occlusion.factor(zsq.getX(), zsq.getY(), zsq.getZ(), s.x, s.y, s.z);
         }
         if (Options.weatherHearing) {
