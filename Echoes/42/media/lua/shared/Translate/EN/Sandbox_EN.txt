@@ -25,6 +25,8 @@ Sandbox_EN = {
     Sandbox_Echoes_DizzinessScale = "Dizziness amplitude multiplier (0-3)",
     Sandbox_Echoes_EngineStealthEnabled = "Java engine: zombies may fail to spot a sneaking or poorly lit player at range (experimental)",
     Sandbox_Echoes_EngineStealthStrength = "Java engine: stealth strength (0-1)",
+    Sandbox_Echoes_EngineNoiseEnabled = "Java engine: a heavily loaded character makes more noise (experimental)",
+    Sandbox_Echoes_EngineNoiseStrength = "Java engine: load noise strength (0-2)",
     Sandbox_Echoes_Frequency = "Phenomena frequency",
     Sandbox_Echoes_Debug = "Debug logging",
 }

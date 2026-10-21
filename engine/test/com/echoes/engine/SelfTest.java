@@ -104,6 +104,15 @@ public class SelfTest {
         check("forced sightings are never skipped", !VisionLogic.shouldSkip("z", "o", true));
         check("spotted calls are counted", Stats.spottedCalls.get() >= 2);
 
+        // Player noise maths
+        check("noise: light load = 1.0", NoiseLogic.radiusFactor(0.3f) == 1.0f && NoiseLogic.radiusFactor(0.5f) == 1.0f);
+        check("noise: full load = 1.25 radius", Math.abs(NoiseLogic.radiusFactor(1.0f) - 1.25f) < 1e-6);
+        check("noise: over capacity is capped", Math.abs(NoiseLogic.radiusFactor(3.0f) - 1.25f) < 1e-6);
+        check("noise: volume +15 % at full load", Math.abs(NoiseLogic.volumeFactor(1.0f) - 1.15f) < 1e-6);
+        int[] same = NoiseLogic.adjust("not a player", 20, 10);
+        check("noise: non-player or observe-only leaves values", same[0] == 20 && same[1] == 10);
+        check("noise: calls are counted", Stats.noiseCalls.get() >= 1);
+
         System.out.println(Stats.summary());
         System.out.println(failures == 0 ? "ALL PASSED" : failures + " FAILED");
         if (failures > 0) System.exit(1);

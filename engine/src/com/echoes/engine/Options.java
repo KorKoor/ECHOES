@@ -24,6 +24,9 @@ public final class Options {
     /** Closer than this many tiles nothing is concealed; the concealment ramps up over the next stealthRampTiles. */
     public static volatile float stealthNearTiles = 3.0f;
     public static volatile float stealthRampTiles = 10.0f;
+    /** Player noise: OFF by default (observe only). When on, heavy loads make the player louder. */
+    public static volatile boolean noise = false;
+    public static volatile float noiseStrength = 1.0f;
     /** Cache lifetime for a (sound, zombie) factor, in milliseconds. */
     public static volatile int cacheMs = 400;
 
@@ -41,6 +44,8 @@ public final class Options {
             case "stealthStrength": stealthStrength = (float) Math.max(0, Math.min(1, v)); return true;
             case "stealthNear": stealthNearTiles = (float) Math.max(0, Math.min(30, v)); return true;
             case "stealthRamp": stealthRampTiles = (float) Math.max(1, Math.min(60, v)); return true;
+            case "noise": noise = v != 0; return true;
+            case "noiseStrength": noiseStrength = (float) Math.max(0, Math.min(2, v)); return true;
             case "strength": strength = (float) Math.max(0, Math.min(1, v)); return true;
             case "maxLine": maxLine = (int) Math.max(4, Math.min(120, v)); return true;
             case "wallFactor": wallFactor = (float) Math.max(0.05, Math.min(1, v)); return true;

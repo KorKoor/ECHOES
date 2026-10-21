@@ -100,3 +100,13 @@ Parche sobre `zombie.characters.IsoZombie#spotted(IsoMovingObject, boolean)` (fi
 Las detecciones forzadas, otros objetivos y cualquier error → no se omite nada. El motor ya penaliza visión por oscuridad (hasta 5), niebla (7) y lluvia: este modo *suma*, así que empezar con `EngineStealthStrength` bajo (0,6 por defecto) y subir según lo que se sienta.
 
 **Verificado:** 8 pruebas nuevas de la función `concealment` (sin ocultación a plena luz, límites, cercanía, objetivos no jugador, contadores). **No verificado:** cuántas veces se llama `spotted`, si saltarse la llamada produce "pérdida de objetivo" natural o un comportamiento raro, y si el servidor tiene datos de luz (en MP la luz solo existe en el cliente; la excepción se traga y no se oculta nada).
+
+---
+
+# EchoesEngine 0.3.0 — ruido del jugador (observar primero)
+
+Parche sobre `zombie.characters.IsoPlayer#addWorldSoundUnlessInvisible(int radius, int volume, boolean stressHumans)` (firma verificada). Se parchea solo la sobrescritura de `IsoPlayer` para no aplicar el cambio dos veces si llama a `super`.
+
+- **Por defecto solo cuenta** llamadas y radio medio (`noise[calls=… adjusted=… meanRadius=…]` en `EchoesEngine_stats()`): nos dirá con qué frecuencia y con qué radios hace ruido el jugador en el juego real.
+- **Con `EngineNoise` activo:** un personaje cargado por encima del 50 % de su capacidad (`getInventoryWeight()/getMaxWeight()`) hace más ruido: hasta **+25 % de radio y +15 % de volumen** a plena carga. Nunca lo hace más silencioso que vanilla ni toca a los zombis.
+- Verificado: la función de factores y el no-efecto para no-jugadores (6 pruebas). Sin verificar: quién llama a ese método (pasos, acciones…), por lo que el efecto real depende de lo que muestre el contador.

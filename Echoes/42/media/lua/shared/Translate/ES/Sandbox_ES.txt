@@ -25,6 +25,8 @@ Sandbox_ES = {
     Sandbox_Echoes_DizzinessScale = "Multiplicador de amplitud del mareo (0-3)",
     Sandbox_Echoes_EngineStealthEnabled = "Motor Java: los zombis pueden no ver a un jugador sigiloso o mal iluminado a distancia (experimental)",
     Sandbox_Echoes_EngineStealthStrength = "Motor Java: intensidad del sigilo (0-1)",
+    Sandbox_Echoes_EngineNoiseEnabled = "Motor Java: un personaje muy cargado hace más ruido (experimental)",
+    Sandbox_Echoes_EngineNoiseStrength = "Motor Java: intensidad del ruido por carga (0-2)",
     Sandbox_Echoes_Frequency = "Frecuencia de fenómenos",
     Sandbox_Echoes_Debug = "Registro de depuración",
 }

@@ -150,6 +150,18 @@ option Echoes.EngineStealthStrength
     page = Echoes, translation = Echoes_EngineStealthStrength,
 }
 
+option Echoes.EngineNoiseEnabled
+{
+    type = boolean, default = false,
+    page = Echoes, translation = Echoes_EngineNoiseEnabled,
+}
+
+option Echoes.EngineNoiseStrength
+{
+    type = double, min = 0.0, max = 2.0, default = 1.0,
+    page = Echoes, translation = Echoes_EngineNoiseStrength,
+}
+
 option Echoes.Frequency
 {
     type = double, min = 0.1, max = 4.0, default = 1.0,
