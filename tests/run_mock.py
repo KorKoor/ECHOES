@@ -1,0 +1,35 @@
+"""Run the mocked-API smoke test (tests/mock_harness.lua) for several random seeds.
+
+Needs `pip install lupa`. Exits non-zero if any run raises a Lua error or logs "[ERROR]".
+This checks that the logic runs and does not crash against a fake game; it is NOT a game test.
+"""
+import os
+import sys
+
+from lupa import LuaRuntime
+
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+SEEDS = range(1, int(sys.argv[1]) + 1) if len(sys.argv) > 1 else range(1, 13)
+failures = 0
+
+for seed in SEEDS:
+    lua = LuaRuntime()
+    out = []
+    lua.globals().__append = out.append
+    lua.execute(
+        "print = function(...) local t = {} for i = 1, select('#', ...) do t[#t+1] = tostring((select(i, ...))) end "
+        "__append(table.concat(t, '\\t')) end"
+    )
+    lua.execute("SEED = %d; BASE = %r" % (seed, ROOT.replace("\\", "/")))
+    try:
+        lua.execute(open(os.path.join(ROOT, "tests", "mock_harness.lua")).read())
+    except Exception as exc:  # noqa: BLE001
+        out.append("LUA ERROR: %s" % exc)
+    bad = [l for l in out if "[ERROR]" in l or "LUA ERROR" in l]
+    status = "FAIL" if bad else "ok"
+    print("seed %2d: %s (%d lines)" % (seed, status, len(out)))
+    for l in bad[:5]:
+        print("   ", l)
+    failures += 1 if bad else 0
+
+sys.exit(1 if failures else 0)

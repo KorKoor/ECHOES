@@ -109,12 +109,38 @@ local function engineObjects()
     end
 end
 
+local function audioClasses()
+    section("Audio: concrete emitter classes (to find where every game sound can be intercepted)")
+    if not zbinspect then log("zbinspect not available: launch ZombieBuddy with `experimental`"); return end
+    local function describe(label, obj)
+        local info = try(label, function() return zbinspect(obj) end)
+        if info then
+            log(label .. " class = " .. tostring(info.type))
+            local n = 0
+            for _, m in ipairs(info.methods or {}) do
+                if string.find(string.lower(m), "play") or string.find(string.lower(m), "volume") or string.find(string.lower(m), "tick") then
+                    n = n + 1
+                    if n <= 25 then log("    " .. m) end
+                end
+            end
+        end
+    end
+    try("world emitter", function()
+        local p = getPlayer()
+        local em = getWorld():getFreeEmitter(p:getX(), p:getY(), p:getZ())
+        describe("getWorld():getFreeEmitter()", em)
+    end)
+    try("player emitter", function() describe("getPlayer():getEmitter()", getPlayer():getEmitter()) end)
+    try("sound manager", function() describe("getSoundManager()", getSoundManager()) end)
+end
+
 local function runAll()
     log("== inventory start ==")
     zbStatus()
     globals()
     viewpointEvents()
     engineObjects()
+    audioClasses()
     log("== inventory end ==")
 end
 
