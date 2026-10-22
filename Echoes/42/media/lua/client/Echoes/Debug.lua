@@ -26,7 +26,7 @@ local function report()
             log(string.format("  place %d,%d theme=%s stage=%d weight=%.1f", p.x, p.y, tostring(p.theme), p.stage or 0, p.w))
         end
     end
-    log("mind: " .. tostring(Echoes.Mind and Echoes.Mind.state or "absent"))
+    log(Echoes.Mind and Echoes.Mind.summary(player) or "mind: absent")
     local keys = {}
     for k in pairs(Echoes.Counters) do keys[#keys + 1] = k end
     table.sort(keys)

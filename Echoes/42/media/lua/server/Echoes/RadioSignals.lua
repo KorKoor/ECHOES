@@ -97,6 +97,7 @@ local function hourly()
     st.line = st.line + 1
     st.pending = REPEATS
     Log.info("survivor transmission begins: message " .. st.current .. " on " .. tostring(frequency(st)))
+    if Echoes.Mind and not isClient() then Echoes.Mind.react("radio", 0.5) end
 end
 
 Events.EveryHours.Add(function() Echoes.safe("RadioSignals.hourly", hourly) end)

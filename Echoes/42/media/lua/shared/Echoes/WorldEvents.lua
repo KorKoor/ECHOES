@@ -137,6 +137,7 @@ local function hourly()
         sinceAnnounce = 99,
     }
     Log.info(string.format("distant alarm started at %d,%d for %d min", state.alarm.x, state.alarm.y, state.alarm.left))
+    if Echoes.Mind and not isServer() then Echoes.Mind.react("alarm", 0.7) end
 end
 
 -- A WorldSound is a short-lived stimulus, so a siren that "keeps sounding" must renew it every game minute.
