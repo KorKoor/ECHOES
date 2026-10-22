@@ -55,6 +55,10 @@ local function loadAll()
     return allNames
 end
 
+-- Words that never belong to an ambience cue for the player; in the real 42.21 sound list a plain "breath" or "scrape"
+-- search otherwise picked FishBreath, ScrapeCannedFood and animal footsteps (seen in the first in-game probe run).
+local NEVER = { "animal", "fish", "canned", "plant" }
+
 -- Names whose lowercase form contains any pattern and none of the excluded words.
 function Sounds.discover(patterns, exclude)
     local out = {}
@@ -63,6 +67,11 @@ function Sounds.discover(patterns, exclude)
         local hit = false
         for _, p in ipairs(patterns) do
             if string.find(low, p, 1, true) then hit = true; break end
+        end
+        if hit then
+            for _, x in ipairs(NEVER) do
+                if string.find(low, x, 1, true) then hit = false; break end
+            end
         end
         if hit then
             for _, x in ipairs(exclude or {}) do

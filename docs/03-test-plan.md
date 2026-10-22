@@ -56,3 +56,8 @@ Repetir §3–§5 en estas condiciones y anotar diferencias: (a) sin Viewpoint; 
 
 ## 10. Cómo enviar resultados
 Copia de `console.txt` las líneas que empiezan por `[Echoes`, `[EchoesProbe]`, `[EchoesInv]`, `[EchoesEngine]` y cualquier traza de error de Lua o de ZombieBuddy relacionada. Añade una frase por cada cosa que se sintió mal, falsa o exagerada.
+## Resultados de la primera ejecución real (PZ 42.21.0, ZombieBuddy 2.3.4, 2026-10-21)
+- Validado: los 3 mods cargan; jar y 4 parches Java activos; todos los chequeos del Probe OK; 20 módulos Lua con errors=0.
+- Validado: F7 imprime el informe; fenómeno `footsteps` disparado por el Director; alarma lejana y radio de supervivientes arrancan; oído (hearing adjusted=78/78, meanFactor medio 0.415 entre casa y exterior) y visión (forced>0) actúan.
+- Sin validar: miedo/trauma/mareo/sordera tras una mordida o persecución (no se llegó a leer un informe posterior); ruido con efecto (`noise adjusted=0`, modo observar); `loudEvents`; capa visual.
+- Hallado: `GameSounds` no tiene sonido de respiración humana (`breath` solo daba `FishBreath`); la búsqueda por patrón ahora excluye animal/fish/canned/plant. `ZombieBuddy.getPolicy/getJavaModStatus` no existen en 2.3.4.

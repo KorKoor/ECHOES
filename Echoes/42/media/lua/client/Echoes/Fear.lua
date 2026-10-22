@@ -57,7 +57,7 @@ local function beat(gen)
         return
     end
     Echoes.safe("Fear.beat", function() -- a failure here must not kill the chain
-        local names = Echoes.Sounds.resolve("heartbeat", {}, { "heartbeat", "heart_beat", "heartbeats" }, {})
+        local names = Echoes.Sounds.resolve("heartbeat", { "HeartBeat" }, { "heartbeat", "heart_beat", "heartbeats" }, {})
         Echoes.Sounds.playAt(player:getX(), player:getY(), player:getZ(), names, 0.15 + 0.45 * Fear.level, 0.02, false, true)
         Fear.lastBeat = getTimestampMs()
     end)
