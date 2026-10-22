@@ -10,7 +10,7 @@ local Log = Echoes.Log
 local Effects = {}
 Echoes.Effects = Effects
 
-local KEYS = { "VisualEnabled", "DizzinessEnabled", "DazeEnabled" }
+local KEYS = { "VisualEnabled", "DizzinessEnabled", "DazeEnabled", "PhysicalEnabled" }
 
 local function set(on)
     for _, k in ipairs(KEYS) do Echoes.Config.override[k] = on end

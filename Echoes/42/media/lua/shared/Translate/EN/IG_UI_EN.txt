@@ -180,4 +180,13 @@ IGUI_EN = {
     IGUI_Echoes_Mind_heat_2 = "I'm sweating. Need shade.",
     IGUI_Echoes_Mind_wind_1 = "This wind... brings sounds that aren't there.",
     IGUI_Echoes_Mind_wind_2 = "The wind howls. I can't hear anything else.",
+    IGUI_Echoes_Mind_stumble_1 = "Almost fell!",
+    IGUI_Echoes_Mind_stumble_2 = "My legs won't respond...",
+    IGUI_Echoes_Mind_stumble_3 = "I tripped. I have to stop.",
+    IGUI_Echoes_Mind_fall_1 = "Aaah! I fell!",
+    IGUI_Echoes_Mind_fall_2 = "Ow... the ground. What a hit.",
+    IGUI_Echoes_Mind_fall_3 = "Get up, get up!",
+    IGUI_Echoes_Mind_bump_1 = "Ow! That door's solid.",
+    IGUI_Echoes_Mind_bump_2 = "Damn! The whole neighbourhood heard that.",
+    IGUI_Echoes_Mind_bump_3 = "I slammed right into the door.",
 }

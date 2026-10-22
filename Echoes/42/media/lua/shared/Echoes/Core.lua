@@ -52,6 +52,7 @@ local defaults = {
     ApparitionsEnabled = false,
     DazeEnabled = true,
     MindEnabled = true,
+    PhysicalEnabled = true,
     Frequency = 1.0,
     Debug = false,
 }

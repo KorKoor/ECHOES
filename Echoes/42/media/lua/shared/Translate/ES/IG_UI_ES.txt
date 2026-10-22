@@ -180,4 +180,13 @@ IGUI_ES = {
     IGUI_Echoes_Mind_wind_1 = "Este viento... trae ruidos que no son.",
     IGUI_Echoes_Mind_wind_2 = "El viento aúlla. No oigo nada más.",
     IGUI_Echoes_Mind_guilt_3 = "No puedo pensar en ello. No puedo.",
+    IGUI_Echoes_Mind_stumble_1 = "¡Casi me caigo!",
+    IGUI_Echoes_Mind_stumble_2 = "Las piernas no me responden...",
+    IGUI_Echoes_Mind_stumble_3 = "Tropecé. Tengo que parar.",
+    IGUI_Echoes_Mind_fall_1 = "¡Aaah! ¡Me caí!",
+    IGUI_Echoes_Mind_fall_2 = "Ay... el suelo. Qué golpe.",
+    IGUI_Echoes_Mind_fall_3 = "¡Levántate, levántate!",
+    IGUI_Echoes_Mind_bump_1 = "¡Auch! Qué puerta tan dura.",
+    IGUI_Echoes_Mind_bump_2 = "¡Mierda! Eso se oyó en todo el barrio.",
+    IGUI_Echoes_Mind_bump_3 = "Me estrellé de lleno con la puerta.",
 }

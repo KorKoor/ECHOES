@@ -20,6 +20,7 @@ Sandbox_EN = {
     Sandbox_Echoes_ScentEnabled = "Zombies can follow your scent trail (blood, exertion; rain washes it away)",
     Sandbox_Echoes_PackAlertEnabled = "Zombies chasing you draw nearby idle zombies toward themselves",
     Sandbox_Echoes_FearEnabled = "Fear: heartbeat and tension (no vanilla stat changes)",
+    Sandbox_Echoes_PhysicalEnabled = "Physical: stumbles and falls from exhaustion, dizziness or panic, and bruising door collisions at a sprint",
     Sandbox_Echoes_MindEnabled = "Emotions: the character talks to themself and can calm down by breathing",
     Sandbox_Echoes_DazeEnabled = "Color drain: the screen loses color with fear, dizziness and tremor",
     Sandbox_Echoes_DizzinessEnabled = "Dizziness: screen sway after exhaustion, blood loss, cold",
