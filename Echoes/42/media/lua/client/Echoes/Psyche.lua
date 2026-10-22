@@ -49,7 +49,9 @@ local function updateTrauma(player)
     local d = data(player)
     local panic = Echoes.statNorm(player, "PANIC") or 0
     if panic > 0.8 then
-        d.trauma = math.min(1.0, d.trauma + 0.03)
+        -- Diminishing returns: the first minutes of panic count most, and a long chase approaches 1.0 without pinning
+        -- it there (first real run: one bite plus a horde chase saturated trauma at 1.00 and left no range to feel).
+        d.trauma = math.min(1.0, d.trauma + 0.03 * (1.0 - 0.8 * d.trauma))
         if Echoes.Places then Echoes.Places.mark(player, 0.5) end
     end
 end
