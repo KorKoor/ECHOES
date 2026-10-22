@@ -3,7 +3,10 @@ $ErrorActionPreference = "Stop"
 $branch = "claude/echoes-technical-research"
 $tmp = Join-Path $env:TEMP "echoes-src"
 if (Test-Path $tmp) { Remove-Item $tmp -Recurse -Force }
-git clone --depth 1 -b $branch https://github.com/KorKoor/ECHOES $tmp
+$ErrorActionPreference = "Continue"   # git writes progress to stderr, which "Stop" would treat as a failure
+git clone --quiet --depth 1 -b $branch https://github.com/KorKoor/ECHOES $tmp
+if ($LASTEXITCODE -ne 0) { throw "git clone failed (exit $LASTEXITCODE)" }
+$ErrorActionPreference = "Stop"
 $dest = Join-Path $env:USERPROFILE "Zomboid\mods"
 foreach ($m in "Echoes","EchoesEngine","EchoesProbe") {
     $t = Join-Path $dest $m

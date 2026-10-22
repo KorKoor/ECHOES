@@ -26,7 +26,7 @@ for seed, mode in RUNS:
         """
         COV = {}
         debug.sethook(function(ev, line)
-          local src = debug.getinfo(2, "S").source
+          local src = debug.getinfo(2, "S").source:gsub("\\\\", "/")
           if src and string.find(src, "Echoes/42", 1, true) then
             COV[src] = COV[src] or {}
             COV[src][line] = true
@@ -41,7 +41,7 @@ for seed, mode in RUNS:
         print("run failed (%s %s): %s" % (seed, mode, exc))
         sys.exit(1)
     for src, lines in lua.eval("COV").items():
-        hit.setdefault(src.lstrip("@"), set()).update(lines.keys())
+        hit.setdefault(src.lstrip("@").replace("\\", "/"), set()).update(lines.keys())
 
 total = covered = 0
 print("%-36s %s" % ("file", "covered"))
@@ -58,7 +58,7 @@ for dirpath, _, names in os.walk(LUA_ROOT):
             and not line.strip().startswith("--")
             and not re.match(r"^\s*(end|else|\}|\)|local function .*\))\s*[,)]*$", line.strip())
         ]
-        got = [i for i in executable if any(i in lines for p, lines in hit.items() if p.endswith(os.path.relpath(path, ROOT)))]
+        got = [i for i in executable if any(i in lines for p, lines in hit.items() if p.endswith(os.path.relpath(path, ROOT).replace("\\", "/")))]
         total += len(executable)
         covered += len(got)
         pct = 100 * len(got) // max(1, len(executable))
