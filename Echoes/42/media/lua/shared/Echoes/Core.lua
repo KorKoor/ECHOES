@@ -70,6 +70,11 @@ end
 -- Safe call helper: a failing phenomenon must never break the game loop.
 Echoes.Perf = { stats = {} }
 
+-- Cheap event counters ("senses.cue", "ai.search", ...) printed by the F7 report, so tuning can rest on how often
+-- each behaviour really fired instead of guesses.
+Echoes.Counters = {}
+function Echoes.count(key) Echoes.Counters[key] = (Echoes.Counters[key] or 0) + 1 end
+
 local function nowMs()
     local ok, t = pcall(getTimestampMs)
     return ok and t or 0

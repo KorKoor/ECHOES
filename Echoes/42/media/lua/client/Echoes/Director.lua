@@ -269,6 +269,7 @@ function Director.evaluate(force)
     mem.log[#mem.log + 1] = { id = kind.id, sq = not kind.run, x = sq:getX(), y = sq:getY(), z = sq:getZ(), t = t,
         callback = remembered ~= nil or usedPlace, theme = usedPlace and place.theme or nil, stage = usedPlace and stage or 0 }
     if #mem.log > 20 then table.remove(mem.log, 1) end
+    Echoes.count("phenomenon." .. tostring(kind.id))
     Log.info("phenomenon fired: " .. kind.id .. " at " .. sq:getX() .. "," .. sq:getY()
         .. (remembered and " (callback)" or "")
         .. (usedPlace and (" place=" .. tostring(place.theme) .. "/stage" .. stage) or "")

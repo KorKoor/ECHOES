@@ -52,6 +52,7 @@ local function update(player)
     local names = Echoes.Sounds.resolve("zombieCue", {}, { "shuffle", "drag", "scrape" }, { "attack", "bite", "hit" })
     if Echoes.Sounds.playAt(z:getX(), z:getY(), z:getZ(), names, 0.5 * f, 0.08) then
         lastCue = now
+        Echoes.count("senses.cue")
         Log.debug(string.format("unseen zombie cue (factor %.2f)", f))
     end
 end

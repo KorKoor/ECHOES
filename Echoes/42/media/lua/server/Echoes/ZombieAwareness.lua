@@ -49,6 +49,7 @@ local function tick()
         if z:isRespondingToPlayerSound() or z:isMovingToPlayerSound() then
             md.echoesHeard = wnow
             md.echoesHops = 0
+            Echoes.count("ai.heard")
         elseif md.echoesHeard and started < BUDGET and ZU.isIdle(z, now)
             and (wnow - md.echoesHeard) <= LOST_WINDOW_MIN
             and (not md.echoesSearched or (wnow - md.echoesSearched) >= HOP_GAP_MIN)
@@ -61,6 +62,7 @@ local function tick()
                 md.echoesHeard = wnow -- keeps the window open for the next hop of the chain
                 ZU.setBusy(z, now, 5000)
                 started = started + 1
+                Echoes.count("ai.search")
             end
         end
     end

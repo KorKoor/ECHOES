@@ -26,6 +26,12 @@ local function report()
             log(string.format("  place %d,%d theme=%s stage=%d weight=%.1f", p.x, p.y, tostring(p.theme), p.stage or 0, p.w))
         end
     end
+    local keys = {}
+    for k in pairs(Echoes.Counters) do keys[#keys + 1] = k end
+    table.sort(keys)
+    local parts = {}
+    for _, k in ipairs(keys) do parts[#parts + 1] = k .. "=" .. Echoes.Counters[k] end
+    log("events: " .. (#parts > 0 and table.concat(parts, " ") or "none yet"))
     log("engine: " .. tostring(Echoes.Engine and Echoes.Engine.available() and Echoes.Engine.stats() or "absent"))
     log("---- cost per module (millisecond resolution) ----")
     for _, line in ipairs(Echoes.Perf.report()) do log(line) end

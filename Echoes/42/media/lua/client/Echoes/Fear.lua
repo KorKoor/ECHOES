@@ -60,6 +60,7 @@ local function beat(gen)
         local names = Echoes.Sounds.resolve("heartbeat", { "HeartBeat" }, { "heartbeat", "heart_beat", "heartbeats" }, {})
         Echoes.Sounds.playAt(player:getX(), player:getY(), player:getZ(), names, 0.15 + 0.45 * Fear.level, 0.02, false, true)
         Fear.lastBeat = getTimestampMs()
+        Echoes.count("fear.beat")
     end)
     Echoes.Timer.after(math.floor(1150 - 650 * Fear.level), function() beat(gen) end)
 end
