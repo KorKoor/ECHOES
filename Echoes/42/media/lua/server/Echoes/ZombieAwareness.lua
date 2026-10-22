@@ -24,19 +24,33 @@ local HOP_GAP_MIN = 0.9       -- minimum time between two search hops of the sam
 local MAX_HOPS = 3            -- extra hops a fully persistent zombie may make (everyone gets at least 1)
 local MIN_INTERVAL_MS = 1500  -- real-time rate limit
 
--- A walkable indoor square 4..10 tiles from the zombie.
-local function pickSearchSquare(z)
+-- A walkable indoor square 4..10 tiles from the zombie (up to 14 for a persistent one). A zombie that already hopped
+-- keeps roughly its heading (within about 70 degrees) so a search sweeps through an area instead of jittering around
+-- one spot, and it never picks a square within 3 tiles of where its previous hop was sent.
+local function pickSearchSquare(z, persist)
     local cell = getCell()
+    local md = z:getModData()
     local zx, zy, zz = math.floor(z:getX()), math.floor(z:getY()), z:getZ()
     for _ = 1, 8 do
-        local ang = ZombRand(360) * math.pi / 180
-        local dist = 4 + ZombRand(7)
-        local sq = cell:getGridSquare(math.floor(zx + math.cos(ang) * dist), math.floor(zy + math.sin(ang) * dist), zz)
-        if sq and sq:getRoom() and sq:isFree(false) then return sq end
+        local ang
+        if md.echoesDir then
+            ang = md.echoesDir + (ZombRand(141) - 70) * math.pi / 180
+        else
+            ang = ZombRand(360) * math.pi / 180
+        end
+        local dist = 4 + ZombRand(7) + math.floor((persist or 0) * 4)
+        local tx, ty = math.floor(zx + math.cos(ang) * dist), math.floor(zy + math.sin(ang) * dist)
+        local fresh = not (md.echoesLastX and math.abs(tx - md.echoesLastX) <= 3 and math.abs(ty - md.echoesLastY) <= 3)
+        local sq = fresh and cell:getGridSquare(tx, ty, zz) or nil
+        if sq and sq:getRoom() and sq:isFree(false) then
+            md.echoesDir = ang
+            md.echoesLastX, md.echoesLastY = tx, ty
+            return sq
+        end
     end
+    md.echoesDir = nil -- boxed in: the next try starts from a fresh random heading
     return nil
 end
-
 local function tick()
     local players = ZU.players()
     if #players == 0 then return end
@@ -49,12 +63,13 @@ local function tick()
         if z:isRespondingToPlayerSound() or z:isMovingToPlayerSound() then
             md.echoesHeard = wnow
             md.echoesHops = 0
+            md.echoesDir, md.echoesLastX, md.echoesLastY = nil, nil, nil
             Echoes.count("ai.heard")
         elseif md.echoesHeard and started < BUDGET and ZU.isIdle(z, now)
             and (wnow - md.echoesHeard) <= LOST_WINDOW_MIN
             and (not md.echoesSearched or (wnow - md.echoesSearched) >= HOP_GAP_MIN)
             and (md.echoesHops or 0) < 1 + math.floor(ZU.personality(z).persist * MAX_HOPS) then
-            local sq = pickSearchSquare(z)
+            local sq = pickSearchSquare(z, ZU.personality(z).persist)
             if sq then
                 z:pathToLocationF(sq:getX() + 0.5, sq:getY() + 0.5, sq:getZ())
                 md.echoesSearched = wnow
