@@ -192,12 +192,13 @@ function Director.evaluate(force)
 
     local mem = memory(player)
     local t = nowHours()
-    if not force and (t - mem.last) < GLOBAL_COOLDOWN_HOURS then return end
+    -- Tension shortens the quiet gap: at full pressure the global cooldown is 40 % shorter (3 h -> 1.8 h).
+    local pressure = Echoes.Psyche and Echoes.Psyche.pressure or 0
+    if not force and (t - mem.last) < GLOBAL_COOLDOWN_HOURS * (1.0 - 0.4 * pressure) then return end
 
     local ok, indoor, night = suitable(player)
     if not ok then Log.debug("conditions not suitable"); return end
 
-    local pressure = Echoes.Psyche and Echoes.Psyche.pressure or 0
     local chance = BASE_CHANCE * Config.get("Frequency") * (1.0 + pressure)
     if indoor and night then chance = chance * 1.5 end
     if not force and ZombRandFloat(0, 1) > chance then return end

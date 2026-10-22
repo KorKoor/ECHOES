@@ -123,7 +123,7 @@ local function runProbe()
         return cats:size() .. " categories: " .. table.concat(names, ", ")
     end)
     check("GameSounds keyword search", function()
-        local keys = { "breath", "whisper", "murmur", "footstep", "door", "alarm", "heart", "cry", "voice",
+        local keys = { "breath", "pant", "exhaust", "winded", "tired", "whisper", "murmur", "footstep", "door", "alarm", "heart", "cry", "voice",
             "shuffle", "drag", "scrape", "knock", "drip", "thump", "scratch", "shot", "gunfire", "heartbeat", "cough", "shiver", "gasp" }
         local found = {}
         for _, k in ipairs(keys) do found[k] = {} end
