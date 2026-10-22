@@ -120,6 +120,12 @@ option Echoes.FearEnabled
     page = Echoes, translation = Echoes_FearEnabled,
 }
 
+option Echoes.FeelEnabled
+{
+    type = boolean, default = true,
+    page = Echoes, translation = Echoes_FeelEnabled,
+}
+
 option Echoes.PhysicalEnabled
 {
     type = boolean, default = true,

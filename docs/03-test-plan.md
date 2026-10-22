@@ -66,3 +66,7 @@ Copia de `console.txt` las líneas que empiezan por `[Echoes`, `[EchoesProbe]`, 
 - F8: demo de 6 s de mareo. Esperado: la pantalla gira suavemente; si no, `Viewpoint` puede estar usando su propia cámara.
 - Sin implementar (no hay API verificada desde Lua): temblor/sacudida de cámara, desenfoque real. Hoy el temblor solo se refleja en la viñeta y el color.
 - Comprobar: `[Echoes] colour drain` / errores `colour drain failed` en console.txt, que el color vuelve a la normalidad al calmarse, y la línea `events:` (`effects.on`/`effects.off`).
+## Colisiones y emociones con el motor (nuevo, sin validar)
+- Colisiones (`Physical.lua`, lectura de `isCollidedThisFrame` / `getCollidedObject` / `isCollidedWithDoor` / `isCollidedWithVehicle` / `isBumped` / `isFalling` y velocidad del vehículo): puerta/árbol/valla/roce de pared corriendo, atropello a pie, choque en vehículo (caída de 10 km/h en 0.1 s), aterrizaje (>0.6 s en el aire), zombi que te embiste, y tropiezos por agotamiento, mareo o terror. Contadores `physical.*` en F7. Umbrales a calibrar.
+- Emociones reales (`Echoes.feel`): los momentos y acciones mueven `STRESS`, `PANIC`, `ANGER`, `UNHAPPINESS`, `BOREDOM` y `PAIN` del propio personaje (los moodles del juego reaccionan). Calmar (respirar, tararear, llorar, rezar, cielo) los baja. F7 imprime `vanilla emotions:`. Comprobar que no se acumulan ni se quedan pegados.
+- F6 apaga efectos, física y emociones reales; opciones `PhysicalEnabled` y `FeelEnabled`.

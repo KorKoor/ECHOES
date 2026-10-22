@@ -27,6 +27,9 @@ local function report()
         end
     end
     log(Echoes.Mind and Echoes.Mind.summary(player) or "mind: absent")
+    local function v(k) local n = Echoes.statNorm(player, k); return n and string.format("%.2f", n) or "n/a" end
+    log("vanilla emotions: stress=" .. v("STRESS") .. " panic=" .. v("PANIC") .. " anger=" .. v("ANGER")
+        .. " unhappiness=" .. v("UNHAPPINESS") .. " boredom=" .. v("BOREDOM") .. " pain=" .. v("PAIN") .. " sanity=" .. v("SANITY"))
     local keys = {}
     for k in pairs(Echoes.Counters) do keys[#keys + 1] = k end
     table.sort(keys)

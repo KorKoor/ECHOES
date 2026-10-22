@@ -20,6 +20,7 @@ Sandbox_ES = {
     Sandbox_Echoes_ScentEnabled = "Los zombis pueden seguir tu rastro de olor (sangre, esfuerzo; la lluvia lo borra)",
     Sandbox_Echoes_PackAlertEnabled = "Los zombis que te persiguen atraen hacia sí a los zombis cercanos inactivos",
     Sandbox_Echoes_FearEnabled = "Miedo: latido y tensión (no cambia estadísticas del juego)",
+    Sandbox_Echoes_FeelEnabled = "Emociones reales: las acciones y los sustos mueven el estrés, el pánico, la ira y la tristeza del juego",
     Sandbox_Echoes_PhysicalEnabled = "Física: tropiezos y caídas por agotamiento, mareo o pánico, y golpes al chocar con puertas corriendo",
     Sandbox_Echoes_MindEnabled = "Emociones: el personaje habla consigo mismo y puede calmarse respirando",
     Sandbox_Echoes_DazeEnabled = "Pérdida de color: la pantalla se apaga con miedo, mareo y temblor",

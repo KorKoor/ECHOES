@@ -53,6 +53,7 @@ local defaults = {
     DazeEnabled = true,
     MindEnabled = true,
     PhysicalEnabled = true,
+    FeelEnabled = true,
     Frequency = 1.0,
     Debug = false,
 }
@@ -159,6 +160,24 @@ function Echoes.atan2(y, x)
 end
 
 -- Per-player persistent data (survives save/load): phenomena log, haunted places, trauma. One schema, one place.
+-- Moves the game's own emotional stats (the ones behind the moodles). deltas = { STRESS = 0.05, PANIC = -0.1, ... } as a
+-- fraction of each stat's range: positive adds, negative removes. CharacterStat.add/remove/set are confirmed in the 42.21
+-- class (javap). Which direction is "better" for each stat is the usual one (STRESS, PANIC, ANGER, UNHAPPINESS, BOREDOM and
+-- PAIN: higher is worse); MORALE and SANITY are deliberately not touched.
+function Echoes.feel(player, deltas)
+    if not player or not deltas or not Echoes.Config.isEnabled("Feel") then return end
+    local stats = player:getStats()
+    for key, d in pairs(deltas) do
+        pcall(function()
+            local stat = CharacterStat[key]
+            local range = stat:getMaximumValue() - stat:getMinimumValue()
+            if range <= 0 then return end
+            if d >= 0 then stats:add(stat, d * range) else stats:remove(stat, -d * range) end
+        end)
+    end
+    Echoes.count("feel")
+end
+
 function Echoes.playerData(player)
     local md = player:getModData()
     md.Echoes = md.Echoes or {}

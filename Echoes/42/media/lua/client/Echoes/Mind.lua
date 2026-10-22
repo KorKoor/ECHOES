@@ -23,6 +23,32 @@ Echoes.Mind = Mind
 
 Mind.state = "calm"
 
+-- What each kind of moment does to the game's own emotional stats (fractions of the stat range; see Echoes.feel).
+-- Applied whenever the moment happens, whether or not a line is spoken.
+local KIND_FEEL = {
+    startle = { STRESS = 0.04, PANIC = 0.05 }, pain = { ANGER = 0.05 }, kill = { STRESS = 0.01 },
+    killstreak = { ANGER = 0.08, STRESS = 0.05 }, guilt = { UNHAPPINESS = 0.06, STRESS = 0.04 },
+    relief = { STRESS = -0.08, PANIC = -0.10 }, refuge = { STRESS = -0.05, UNHAPPINESS = -0.02 },
+    hope = { UNHAPPINESS = -0.03 }, alone = { UNHAPPINESS = 0.03, BOREDOM = 0.02 }, dread = { STRESS = 0.02 },
+    nostalgia = { UNHAPPINESS = 0.03 }, dawn = { STRESS = -0.03 }, dusk = { STRESS = 0.01 },
+    radio = { UNHAPPINESS = -0.04 }, alarm = { STRESS = 0.03 }, thunder = { PANIC = 0.03 }, numb = { UNHAPPINESS = 0.02 },
+    anger = { ANGER = 0.02 }, crash = { STRESS = 0.15, PANIC = 0.20 }, stumble = { PAIN = 0.02, STRESS = 0.03 },
+    fall = { PAIN = 0.10, STRESS = 0.06 }, bump = { PAIN = 0.05, STRESS = 0.03 }, hit_tree = { PAIN = 0.06, STRESS = 0.04 },
+    hit_fence = { PAIN = 0.04, STRESS = 0.03 }, hit_vehicle = { PAIN = 0.15, STRESS = 0.10, PANIC = 0.15 },
+    landing = { PAIN = 0.06, STRESS = 0.04 }, contact = { PANIC = 0.10, STRESS = 0.05 }, scrape = { PAIN = 0.01 },
+    -- chosen actions
+    calm = { STRESS = -0.15, PANIC = -0.25 }, reflect = { STRESS = -0.05 },
+    act_hum = { STRESS = -0.10, BOREDOM = -0.10, UNHAPPINESS = -0.05 },
+    act_cry = { UNHAPPINESS = -0.12, STRESS = -0.12, ANGER = -0.08 }, act_pray = { STRESS = -0.08, PANIC = -0.10 },
+    act_sky = { BOREDOM = -0.05, UNHAPPINESS = -0.03, STRESS = -0.04 }, act_sky_rain = { BOREDOM = -0.05, STRESS = -0.02 },
+    act_window_none = { STRESS = -0.03 }, act_window_few = { STRESS = 0.03 }, act_window_many = { STRESS = 0.06 },
+    act_corpse = { STRESS = 0.05, UNHAPPINESS = 0.04 },
+}
+function Mind.feelKind(kind)
+    local f = KIND_FEEL[kind]
+    if f then Echoes.feel(getPlayer(), f) end
+end
+
 local BASE_GAP_MS = 40000     -- minimum real time between two lines (scaled by talkativeness)
 local URGENT_GAP_MS = 6000    -- pain and sudden shocks may speak sooner
 local KIND_GAP_MS = 200000    -- the same kind is not repeated within this time
@@ -79,6 +105,7 @@ function Mind.react(kind, chance, opts)
     opts = opts or {}
     local player = getPlayer()
     if not player or player:isDead() then return false end
+    Mind.feelKind(kind) -- the moment happened whether or not it is spoken
     local mem = memory(player)
     local now = getTimestampMs()
     local gap = opts.urgent and URGENT_GAP_MS or (BASE_GAP_MS / mem.chatty)
@@ -103,6 +130,7 @@ function Mind.speak(kind, opts)
     opts = opts or {}
     local player = getPlayer()
     if not player or player:isDead() then return false end
+    Mind.feelKind(kind)
     local key = pick(kind, opts.sub)
     if not key then return false end
     Echoes.count("mind." .. kind)
@@ -153,6 +181,11 @@ local function update(player)
     if state == "calm" and fear < 0.1 and mem.gloom > 0.5 and ZombRandFloat(0, 1) < 0.03 then Mind.react("hope", 0.5) end
     if Echoes.Body and Echoes.Body.state.cold then Mind.react("cold", 0.25) end
     if state == "anger" then Mind.react("anger", 0.4) end
+    -- Bridge to the vanilla moodles: heavy ECHOES fear shows up as panic and lasting pressure as stress.
+    local panicN = Echoes.statNorm(player, "PANIC") or 0
+    if fear > 0.6 and panicN < fear * 0.5 then Echoes.feel(player, { PANIC = 0.03 * fear }) end
+    local pr = Echoes.Psyche and Echoes.Psyche.pressure or 0
+    if pr > 0.4 then Echoes.feel(player, { STRESS = 0.01 * pr }) end
     local hunger, thirst = Echoes.statNorm(player, "HUNGER"), Echoes.statNorm(player, "THIRST")
     if hunger and hunger > 0.6 then Mind.react("hungry", 0.2) end
     if thirst and thirst > 0.6 then Mind.react("thirsty", 0.25) end
@@ -306,13 +339,14 @@ end
 local function breatheDone()
     if Echoes.Fear and Echoes.Fear.calm then Echoes.Fear.calm(0.3) end
     Echoes.count("mind.breathe")
-    Mind.react("calm", 1.0, { urgent = true })
+    Mind.speak("calm") -- also applies the calming effect on the stress and panic stats
 end
 
 local function reflectDone(player)
     local mem = memory(player)
     local days = math.floor(getGameTime():getWorldAgeHours() / 24)
     if Echoes.Fear and Echoes.Fear.calm then Echoes.Fear.calm(0.1) end
+    Mind.feelKind("reflect")
     Echoes.count("mind.reflect")
     local k = pick("reflect_" .. Mind.state)
     local line = pick("reflect")
