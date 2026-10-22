@@ -1,0 +1,12 @@
+ContextMenu_ES = {
+    ContextMenu_Echoes_ListenAtDoor = "Escuchar tras la puerta",
+    ContextMenu_Echoes_BreatheDeep = "Respirar hondo",
+    ContextMenu_Echoes_Reflect = "Reflexionar",
+    ContextMenu_Echoes_Mind = "Mente",
+    ContextMenu_Echoes_Hum = "Tararear",
+    ContextMenu_Echoes_Cry = "Llorar",
+    ContextMenu_Echoes_Pray = "Rezar",
+    ContextMenu_Echoes_Sky = "Mirar el cielo",
+    ContextMenu_Echoes_LookOut = "Mirar por la ventana",
+    ContextMenu_Echoes_Corpse = "Examinar el cadáver",
+}

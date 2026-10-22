@@ -1,0 +1,4 @@
+name=ECHOES
+id=Echoes
+description=Senses, fear, unexplained phenomena and smarter zombies (scent, blood, pack, searching). Optional: EchoesEngine (Java, needs ZombieBuddy) and Project Viewpoint. Prototype, untested in game.
+versionMin=42.20.0

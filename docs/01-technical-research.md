@@ -123,3 +123,37 @@ Después: (2) Living World server-side con alarmas de edificio, (3) Senses sobre
 - ZombieBuddy en pzwiki.net/wiki/ZombieBuddy y Workshop 3619862853, 3807686870.
 - Reactive Sound Events: Workshop 2969551071 (comentarios).
 - Estructura B42: guías comunitarias (Workshop discussion 2735294987; projectzomboid.wiki/multiplayer/mods).
+
+## 9. Adenda: shaders y efectos de pantalla (aportado por el usuario: "shaders de Minecraft Java")
+
+Contexto: en Minecraft Java los shader packs funcionan porque OptiFine/Iris exponen un pipeline de post-proceso sustituible. Project Zomboid **no tiene** un equivalente oficial. Lo que sí hay (Javadoc 42.20.0, verificado como existencia de clases/métodos):
+
+| Nivel | Qué | Estado |
+|---|---|---|
+| A. Efectos vanilla desde Lua | `SearchMode` (accesible vía `LuaManager.GlobalObject.getSearchMode()`): por jugador `setEnabled`, `setOverride`, y valores `blur`, `darkness`, `desat`, `radius`, `gradientWidth` con `SearchModeFloat` (`setInterior/Exterior`, `setTargets`), `setFadeTime`. `ClimateManager.setDesaturation(float)`. `ScreenFader`. | Existe en Java; **por verificar** que Lua pueda fijar los valores y que se vea bajo Viewpoint |
+| B. UI 2D | Capas ISUI con texturas existentes (viñetas, ruido). Independiente del renderer. | Viable, riesgo bajo |
+| C. GLSL propio | Existen `ShaderProgram` (`createFragShader`, `setValue`, `Start/End`) y `ShaderManager.getOrCreateShader`; los shaders de juego (niebla, agua, charcos, clima) son clases Java con ficheros GLSL. Un post-proceso nuevo exige **Java (ZombieBuddy)** o sustituir ficheros GLSL vanilla (no verificado que los mods puedan hacerlo). | Incierto; fuera del MVP |
+
+Riesgos del nivel C: Viewpoint trae su propio renderer, así que un shader escrito para el pipeline vanilla puede no aplicarse o romperse; además obliga al usuario a aceptar un JAR sin sandbox. Recomendación: **A y B en ECHOES core; C como add-on opcional separado ("Echoes Shaders") más adelante**, con spike propio.
+
+Idea concreta para Echoes con el nivel A: oscurecimiento/desaturación lenta y breve cuando ocurre un fenómeno (`SearchMode` en modo override con fade largo), sin sustos bruscos. Es compatible con la regla "efectos de pantalla mediante mecanismos existentes".
+
+## 10. Adenda 2: Viewpoint ya integra shaders de Minecraft (hallazgo importante)
+
+Según fichas de Workshop y guías (fuentes secundarias, no he podido abrirlas ni leer código de Viewpoint):
+- Viewpoint es un **renderer propio** (OpenGL moderno, pipeline PBR) con **puente a shader packs de Minecraft (estilo Iris)**: se colocan en `Zomboid/viewpoint-shaderpacks`, se elige el pack en *Supr → Graphics → Shaders*. Se citan BSL, Eclipse, Noble, Bliss, Solas, Complementary y Photon (Photon "probado por la comunidad" según una ficha; otra fuente lo trata como no verificado).
+- Existe un mod de compatibilidad "Viewpoint PZO Eclipse Shader Compatibility" (Workshop 3815225881) para 42.21 / Viewpoint 0.1.5a-0.1.6 / ZombieBuddy ≥ 2.3.0, y "Viewpoint Rolling Hills" (3815630947) que declara soportar el puente. La documentación de shaders de Viewpoint figuraba como "próximamente".
+- Guía: pzmanual.com/guides/project-zomboid-shaders/. Errores de shader: `Zomboid/console.txt`.
+
+Consecuencias para ECHOES:
+1. **Los efectos vanilla (`SearchMode`, `setDesaturation`) pueden no verse o verse distintos con un shader pack activo** (el pack reemplaza el post-proceso). Hay que probarlo con y sin pack; no asumir.
+2. **Capa de UI 2D (nivel B) pasa a ser el fallback fiable**: se dibuja encima de cualquier renderer.
+3. **Oportunidad:** un shader pack es solo texto GLSL empaquetado. Un "Echoes shader pack" (viñeta, aberración, ruido, desaturación localizada) sería 100% programático, sin arte, y no requeriría Java en ECHOES. Pero depende del formato soportado por Viewpoint, aún sin documentación pública → no se empieza hasta leerla.
+4. No competir con Photon/BSL: no son mods de ECHOES; solo se garantiza que ECHOES no se rompe con ellos (caso de prueba obligatorio: Photon y BSL activos).
+
+## 11. Verificación cruzada con mods reales de B42 (código de terceros, solo lectura)
+Para no depender solo del Javadoc se leyeron mods públicos de Build 42 (B47ANCE'd Essentials/Waterworks, empire-pz-mods; versionMin 42.20.x). Confirmado por uso real: eventos `OnTick`, `OnGameStart`, `OnKeyPressed`, `OnFillWorldObjectContextMenu(playerNum, context, worldObjects, test)`, `OnClientCommand(module, command, player, args)`, `OnServerCommand(module, command, args)`, `EveryOneMinute`, `EveryTenMinutes`, `EveryHours`, `OnPlayerUpdate`; `ISBaseTimedAction:derive` + `ISBaseTimedAction.new(self, actor)` + `require "TimedActions/ISBaseTimedAction"`; `ISTimedActionQueue.add`; `ModData.getOrCreate`; `sendServerCommand(player, module, command, args)`; `instanceof(obj, "Clase")`; `getStats():getNumChasingZombies()`; estructura `Mod/42/{mod.info, media/...}` con `media/sandbox-options.txt` dentro de `42/`; sintaxis `option Mod.Nombre { type = ..., default = ..., page = ..., translation = ..., }`.
+Cambios aplicados por ello: media movida a `42/media` (se mantiene `common/`), acción "Listen at the door" reescrita con el patrón real y sin depender de `luautils.walkAdj` (requiere estar a ≤2,5 casillas).
+Comprobación automática: los 110 nombres de método llamados desde el Lua del proyecto se contrastaron con el Javadoc: 105 existen; los 5 restantes son clases Lua de la interfaz (`derive`, `new`, `instantiate`, `addToUIManager`, `prerender`). Los 22 globales de PZ usados existen en `LuaManager.GlobalObject`, salvo `instanceof` (uso confirmado en mods reales).
+
+**Aviso (PZwiki, Lua API):** desde Build 42.15 **no se pueden leer campos de instancia Java desde Lua** (los estáticos, como `CharacterStat.ENDURANCE` o `Keyboard.KEY_F9`, sí). Todo el código usa métodos, no campos de instancia. `CharacterStat` llegó en 42.13; para versiones anteriores `Echoes.statNorm` cae a los getters antiguos (`getEndurance`, `getFatigue`, `getStress`, `getPanic`, `getSanity`).

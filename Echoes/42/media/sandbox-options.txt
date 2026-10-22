@@ -1,0 +1,229 @@
+VERSION = 1,
+
+option Echoes.Enabled
+{
+    type = boolean, default = true,
+    page = Echoes, translation = Echoes_Enabled,
+}
+
+option Echoes.SoundEnabled
+{
+    type = boolean, default = true,
+    page = Echoes, translation = Echoes_SoundEnabled,
+}
+
+option Echoes.PhenomenaEnabled
+{
+    type = boolean, default = true,
+    page = Echoes, translation = Echoes_PhenomenaEnabled,
+}
+
+option Echoes.BodyEnabled
+{
+    type = boolean, default = true,
+    page = Echoes, translation = Echoes_BodyEnabled,
+}
+
+option Echoes.PsycheEnabled
+{
+    type = boolean, default = true,
+    page = Echoes, translation = Echoes_PsycheEnabled,
+}
+
+option Echoes.TraumaEnabled
+{
+    type = boolean, default = true,
+    page = Echoes, translation = Echoes_TraumaEnabled,
+}
+
+option Echoes.DecayEnabled
+{
+    type = boolean, default = true,
+    page = Echoes, translation = Echoes_DecayEnabled,
+}
+
+option Echoes.WorldEventsEnabled
+{
+    type = boolean, default = true,
+    page = Echoes, translation = Echoes_WorldEventsEnabled,
+}
+
+option Echoes.SensesEnabled
+{
+    type = boolean, default = true,
+    page = Echoes, translation = Echoes_SensesEnabled,
+}
+
+option Echoes.InteractionEnabled
+{
+    type = boolean, default = true,
+    page = Echoes, translation = Echoes_InteractionEnabled,
+}
+
+option Echoes.AIEnabled
+{
+    type = boolean, default = true,
+    page = Echoes, translation = Echoes_AIEnabled,
+}
+
+option Echoes.VehicleEnabled
+{
+    type = boolean, default = true,
+    page = Echoes, translation = Echoes_VehicleEnabled,
+}
+
+option Echoes.StoriesEnabled
+{
+    type = boolean, default = true,
+    page = Echoes, translation = Echoes_StoriesEnabled,
+}
+
+option Echoes.VisualEnabled
+{
+    type = boolean, default = true,
+    page = Echoes, translation = Echoes_VisualEnabled,
+}
+
+option Echoes.ApparitionsEnabled
+{
+    type = boolean, default = false,
+    page = Echoes, translation = Echoes_ApparitionsEnabled,
+}
+
+option Echoes.EngineHearingEnabled
+{
+    type = boolean, default = true,
+    page = Echoes, translation = Echoes_EngineHearingEnabled,
+}
+
+option Echoes.EngineStrength
+{
+    type = double, min = 0.0, max = 1.0, default = 1.0,
+    page = Echoes, translation = Echoes_EngineStrength,
+}
+
+option Echoes.ScentEnabled
+{
+    type = boolean, default = true,
+    page = Echoes, translation = Echoes_ScentEnabled,
+}
+
+option Echoes.PackAlertEnabled
+{
+    type = boolean, default = true,
+    page = Echoes, translation = Echoes_PackAlertEnabled,
+}
+
+option Echoes.FearEnabled
+{
+    type = boolean, default = true,
+    page = Echoes, translation = Echoes_FearEnabled,
+}
+
+option Echoes.ArmedZombiesEnabled
+{
+    type = boolean, default = true,
+    page = Echoes, translation = Echoes_ArmedZombiesEnabled,
+}
+
+option Echoes.LearnEnabled
+{
+    type = boolean, default = true,
+    page = Echoes, translation = Echoes_LearnEnabled,
+}
+
+option Echoes.BrainEnabled
+{
+    type = boolean, default = true,
+    page = Echoes, translation = Echoes_BrainEnabled,
+}
+
+option Echoes.TacticsEnabled
+{
+    type = boolean, default = true,
+    page = Echoes, translation = Echoes_TacticsEnabled,
+}
+
+option Echoes.FeelEnabled
+{
+    type = boolean, default = true,
+    page = Echoes, translation = Echoes_FeelEnabled,
+}
+
+option Echoes.PhysicalEnabled
+{
+    type = boolean, default = true,
+    page = Echoes, translation = Echoes_PhysicalEnabled,
+}
+
+option Echoes.MindEnabled
+{
+    type = boolean, default = true,
+    page = Echoes, translation = Echoes_MindEnabled,
+}
+
+option Echoes.DazeEnabled
+{
+    type = boolean, default = true,
+    page = Echoes, translation = Echoes_DazeEnabled,
+}
+
+option Echoes.DizzinessEnabled
+{
+    type = boolean, default = true,
+    page = Echoes, translation = Echoes_DizzinessEnabled,
+}
+
+option Echoes.ScentStrength
+{
+    type = double, min = 0.0, max = 2.0, default = 1.0,
+    page = Echoes, translation = Echoes_ScentStrength,
+}
+
+option Echoes.DizzinessScale
+{
+    type = double, min = 0.0, max = 3.0, default = 1.0,
+    page = Echoes, translation = Echoes_DizzinessScale,
+}
+
+option Echoes.EngineStealthEnabled
+{
+    type = boolean, default = false,
+    page = Echoes, translation = Echoes_EngineStealthEnabled,
+}
+
+option Echoes.EngineStealthStrength
+{
+    type = double, min = 0.0, max = 1.0, default = 0.6,
+    page = Echoes, translation = Echoes_EngineStealthStrength,
+}
+
+option Echoes.EngineNoiseEnabled
+{
+    type = boolean, default = false,
+    page = Echoes, translation = Echoes_EngineNoiseEnabled,
+}
+
+option Echoes.EngineNoiseStrength
+{
+    type = double, min = 0.0, max = 2.0, default = 1.0,
+    page = Echoes, translation = Echoes_EngineNoiseStrength,
+}
+
+option Echoes.RadioEnabled
+{
+    type = boolean, default = true,
+    page = Echoes, translation = Echoes_RadioEnabled,
+}
+
+option Echoes.Frequency
+{
+    type = double, min = 0.1, max = 4.0, default = 1.0,
+    page = Echoes, translation = Echoes_Frequency,
+}
+
+option Echoes.Debug
+{
+    type = boolean, default = false,
+    page = Echoes, translation = Echoes_Debug,
+}

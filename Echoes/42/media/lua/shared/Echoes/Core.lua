@@ -1,0 +1,240 @@
+-- ECHOES core (shared): namespace, logging, configuration.
+-- UNTESTED prototype: APIs marked [V] in docs/02-design.md still need in-game verification.
+
+Echoes = Echoes or {}
+Echoes.VERSION = "0.6.0"
+
+-- Logging ---------------------------------------------------------------------------------
+Echoes.Log = {}
+
+local function isDebug()
+    return SandboxVars and SandboxVars.Echoes and SandboxVars.Echoes.Debug == true
+end
+
+function Echoes.Log.error(msg) print("[Echoes][ERROR] " .. tostring(msg)) end
+function Echoes.Log.warn(msg)  print("[Echoes][WARN] " .. tostring(msg)) end
+function Echoes.Log.info(msg)  print("[Echoes] " .. tostring(msg)) end
+function Echoes.Log.debug(msg)
+    if isDebug() then print("[Echoes][DEBUG] " .. tostring(msg)) end
+end
+
+-- Configuration -----------------------------------------------------------------------------
+Echoes.Config = {}
+
+local defaults = {
+    Enabled = true,
+    SoundEnabled = true,
+    PhenomenaEnabled = true,
+    BodyEnabled = true,
+    PsycheEnabled = true,
+    TraumaEnabled = true,
+    DecayEnabled = true,
+    WorldEventsEnabled = true,
+    RadioEnabled = true,
+    SensesEnabled = true,
+    InteractionEnabled = true,
+    AIEnabled = true,
+    VehicleEnabled = true,
+    StoriesEnabled = true,
+    ScentEnabled = true,
+    ScentStrength = 1.0,
+    PackAlertEnabled = true,
+    FearEnabled = true,
+    DizzinessEnabled = true,
+    DizzinessScale = 1.0,
+    EngineHearingEnabled = true,
+    EngineStrength = 1.0,
+    EngineNoiseEnabled = false,
+    EngineNoiseStrength = 1.0,
+    EngineStealthEnabled = false,
+    EngineStealthStrength = 0.6,
+    VisualEnabled = true,
+    ApparitionsEnabled = false,
+    DazeEnabled = true,
+    MindEnabled = true,
+    PhysicalEnabled = true,
+    FeelEnabled = true,
+    ArmedZombiesEnabled = true,
+    TacticsEnabled = true,
+    BrainEnabled = true,
+    LearnEnabled = true,
+    Frequency = 1.0,
+    Debug = false,
+}
+
+-- Runtime overrides (single player): let the player turn the screen effects on or off in a world whose saved sandbox
+-- values say otherwise (see client/Echoes/Effects.lua). Never applied in multiplayer, where the server's sandbox decides.
+Echoes.Config.override = {}
+
+function Echoes.Config.get(key)
+    local ov = Echoes.Config.override[key]
+    if ov ~= nil then return ov end
+    local v = SandboxVars and SandboxVars.Echoes and SandboxVars.Echoes[key]
+    if v == nil then return defaults[key] end
+    return v
+end
+
+-- A module runs only if the global switch and its own switch are on.
+function Echoes.Config.isEnabled(module)
+    if not Echoes.Config.get("Enabled") then return false end
+    if module and Echoes.Config.get(module .. "Enabled") == false then return false end
+    return true
+end
+
+-- Safe call helper: a failing phenomenon must never break the game loop.
+Echoes.Perf = { stats = {} }
+
+-- Cheap event counters ("senses.cue", "ai.search", ...) printed by the F7 report, so tuning can rest on how often
+-- each behaviour really fired instead of guesses.
+Echoes.Counters = {}
+function Echoes.count(key) Echoes.Counters[key] = (Echoes.Counters[key] or 0) + 1 end
+
+local function nowMs()
+    local ok, t = pcall(getTimestampMs)
+    return ok and t or 0
+end
+
+-- Every call through safe() is counted and timed (millisecond resolution), so slow modules show up in Perf.report().
+function Echoes.safe(label, fn, ...)
+    local t0 = nowMs()
+    local ok, res = pcall(fn, ...)
+    local dt = nowMs() - t0
+    local st = Echoes.Perf.stats[label]
+    if not st then st = { calls = 0, ms = 0, max = 0, errors = 0 }; Echoes.Perf.stats[label] = st end
+    st.calls = st.calls + 1
+    st.ms = st.ms + dt
+    if dt > st.max then st.max = dt end
+    if not ok then
+        st.errors = st.errors + 1
+        Echoes.Log.error(label .. ": " .. tostring(res))
+        return nil
+    end
+    return res
+end
+
+-- Lines "label calls=.. avgMs=.. maxMs=.. errors=..", slowest total first.
+function Echoes.Perf.report()
+    local rows = {}
+    for label, st in pairs(Echoes.Perf.stats) do rows[#rows + 1] = { label = label, st = st } end
+    table.sort(rows, function(a, b) return a.st.ms > b.st.ms end)
+    local out = {}
+    for _, r in ipairs(rows) do
+        local st = r.st
+        out[#out + 1] = string.format("%-28s calls=%d avgMs=%.2f maxMs=%d errors=%d", r.label, st.calls,
+            st.calls > 0 and st.ms / st.calls or 0, st.max, st.errors)
+    end
+    return out
+end
+
+-- Normalised (0..1) value of a CharacterStat for a character, using the stat's own min/max.
+-- Returns nil if the stat or the call is unavailable (B42 CharacterStat registry, unverified from Lua).
+-- Builds before 42.13 had no CharacterStat; the old getters are tried as a fallback (value / known maximum).
+local LEGACY = {
+    ENDURANCE = { "getEndurance", 1 }, FATIGUE = { "getFatigue", 1 }, STRESS = { "getStress", 1 },
+    PANIC = { "getPanic", 100 }, SANITY = { "getSanity", 1 },
+}
+
+function Echoes.statNorm(character, key)
+    local ok, v = pcall(function()
+        local stat = CharacterStat[key]
+        local val = character:getStats():get(stat)
+        local mn, mx = stat:getMinimumValue(), stat:getMaximumValue()
+        if mx <= mn then return nil end
+        return (val - mn) / (mx - mn)
+    end)
+    if ok and type(v) == "number" then return v end
+    local legacy = LEGACY[key]
+    if legacy then
+        local ok2, v2 = pcall(function() return character:getStats()[legacy[1]](character:getStats()) end)
+        if ok2 and type(v2) == "number" then return Echoes.clamp(v2 / legacy[2], 0, 1) end
+    end
+    return nil
+end
+
+function Echoes.clamp(v, lo, hi)
+    if v < lo then return lo end
+    if v > hi then return hi end
+    return v
+end
+
+-- atan2 that works whether the Lua flavour has math.atan2 (5.1 / Kahlua) or a two-argument math.atan (5.3+).
+function Echoes.atan2(y, x)
+    if math.atan2 then return math.atan2(y, x) end
+    return math.atan(y, x)
+end
+
+-- Per-player persistent data (survives save/load): phenomena log, haunted places, trauma. One schema, one place.
+-- Moves the game's own emotional stats (the ones behind the moodles). deltas = { STRESS = 0.05, PANIC = -0.1, ... } as a
+-- fraction of each stat's range: positive adds, negative removes. CharacterStat.add/remove/set are confirmed in the 42.21
+-- class (javap). Which direction is "better" for each stat is the usual one (STRESS, PANIC, ANGER, UNHAPPINESS, BOREDOM and
+-- PAIN: higher is worse); MORALE and SANITY are deliberately not touched.
+function Echoes.feel(player, deltas)
+    if not player or not deltas or not Echoes.Config.isEnabled("Feel") then return end
+    local stats = player:getStats()
+    for key, d in pairs(deltas) do
+        pcall(function()
+            local stat = CharacterStat[key]
+            local range = stat:getMaximumValue() - stat:getMinimumValue()
+            if range <= 0 then return end
+            if d >= 0 then stats:add(stat, d * range) else stats:remove(stat, -d * range) end
+        end)
+    end
+    Echoes.count("feel")
+end
+
+function Echoes.playerData(player)
+    local md = player:getModData()
+    md.Echoes = md.Echoes or {}
+    local d = md.Echoes
+    d.last = d.last or -1000
+    d.log = d.log or {}
+    d.places = d.places or {}
+    d.trauma = d.trauma or 0
+    return d
+end
+
+-- Real-time rate limiter: true at most once per `ms` milliseconds per label. Periodic game events fire much more
+-- often per real second when sleeping or at high game speed; heavy scans use this so their cost stays bounded.
+local lastRun = {}
+function Echoes.throttle(label, ms)
+    local ok, t = pcall(getTimestampMs)
+    if not ok or type(t) ~= "number" then return true end
+    local prev = lastRun[label]
+    if prev and t - prev < ms then return false end
+    lastRun[label] = t
+    return true
+end
+
+-- A door with an indoor square on both sides. Exterior doors (front doors, a safehouse's entrance) are excluded
+-- from anything that opens or locks doors on its own.
+function Echoes.isInteriorDoor(door)
+    local ok, res = pcall(function()
+        local a, b = door:getSquare(), door:getOppositeSquare()
+        if not a or not b then return false end
+        return (not a:isOutside()) and (not b:isOutside())
+    end)
+    return ok and res or false
+end
+
+-- The door on a square (north or west edge), or nil.
+function Echoes.doorAt(sq)
+    return sq:getDoor(true) or sq:getDoor(false)
+end
+
+-- Every square holding a door within `radius` tiles (square window) of (cx, cy, z). A bounded, deterministic scan
+-- (at most (2r+1)^2 squares): random sampling found a single door in a 29x29 area only ~20% of the time.
+-- `accept(sq, door)` may veto candidates. Returns an array of squares.
+function Echoes.doorSquares(cx, cy, z, radius, accept)
+    local cell = getCell()
+    local out = {}
+    for dx = -radius, radius do
+        for dy = -radius, radius do
+            local sq = cell:getGridSquare(cx + dx, cy + dy, z)
+            if sq then
+                local d = Echoes.doorAt(sq)
+                if d and (not accept or accept(sq, d)) then out[#out + 1] = sq end
+            end
+        end
+    end
+    return out
+end

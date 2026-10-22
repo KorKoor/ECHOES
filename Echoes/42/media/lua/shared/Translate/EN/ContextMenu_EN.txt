@@ -1,0 +1,12 @@
+ContextMenu_EN = {
+    ContextMenu_Echoes_ListenAtDoor = "Listen at the door",
+    ContextMenu_Echoes_BreatheDeep = "Breathe deeply",
+    ContextMenu_Echoes_Reflect = "Reflect",
+    ContextMenu_Echoes_Mind = "Mind",
+    ContextMenu_Echoes_Hum = "Hum a tune",
+    ContextMenu_Echoes_Cry = "Cry",
+    ContextMenu_Echoes_Pray = "Pray",
+    ContextMenu_Echoes_Sky = "Look at the sky",
+    ContextMenu_Echoes_LookOut = "Look out the window",
+    ContextMenu_Echoes_Corpse = "Examine the corpse",
+}
