@@ -126,6 +126,12 @@ option Echoes.ArmedZombiesEnabled
     page = Echoes, translation = Echoes_ArmedZombiesEnabled,
 }
 
+option Echoes.LearnEnabled
+{
+    type = boolean, default = true,
+    page = Echoes, translation = Echoes_LearnEnabled,
+}
+
 option Echoes.BrainEnabled
 {
     type = boolean, default = true,

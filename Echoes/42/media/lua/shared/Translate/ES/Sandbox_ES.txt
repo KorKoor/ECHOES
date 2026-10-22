@@ -21,6 +21,7 @@ Sandbox_ES = {
     Sandbox_Echoes_PackAlertEnabled = "Los zombis que te persiguen atraen hacia sí a los zombis cercanos inactivos",
     Sandbox_Echoes_FearEnabled = "Miedo: latido y tensión (no cambia estadísticas del juego)",
     Sandbox_Echoes_ArmedZombiesEnabled = "Zombis armados: policías y soldados pueden recordar su arma, apuntar y disparar (con munición limitada)",
+    Sandbox_Echoes_LearnEnabled = "Los zombis aprenden cómo huyes y se anticipan; si cambias de hábitos, pierden precisión",
     Sandbox_Echoes_BrainEnabled = "Cerebro de zombis: creencias compartidas sobre dónde te vieron, investigan, barren sectores, flanquean y cercan las salidas de un edificio",
     Sandbox_Echoes_TacticsEnabled = "Tácticas de zombis: grupos que flanquean y zombis que guardan rencor",
     Sandbox_Echoes_FeelEnabled = "Emociones reales: las acciones y los sustos mueven el estrés, el pánico, la ira y la tristeza del juego",

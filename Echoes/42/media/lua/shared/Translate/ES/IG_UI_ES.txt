@@ -220,4 +220,7 @@ IGUI_ES = {
     IGUI_Echoes_Mind_shot_miss_3 = "¡Muévete, muévete!",
     IGUI_Echoes_Mind_plan_1 = "Se están separando. Me rodean.",
     IGUI_Echoes_Mind_plan_2 = "No vienen todos de frente. Están pensando.",
+    IGUI_Echoes_Mind_predicted_1 = "¡Sabían por dónde iba a salir! ¿Cómo lo saben?",
+    IGUI_Echoes_Mind_predicted_2 = "Me están leyendo. Siempre huyo hacia el mismo lado.",
+    IGUI_Echoes_Mind_predicted_3 = "Me cortan el paso... están aprendiendo.",
 }

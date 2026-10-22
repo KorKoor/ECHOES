@@ -220,4 +220,7 @@ IGUI_EN = {
     IGUI_Echoes_Mind_shot_miss_3 = "Move, move!",
     IGUI_Echoes_Mind_plan_1 = "They're splitting up. They're surrounding me.",
     IGUI_Echoes_Mind_plan_2 = "They're not all coming head on. They're thinking.",
+    IGUI_Echoes_Mind_predicted_1 = "They knew which way I'd go! How do they know?",
+    IGUI_Echoes_Mind_predicted_2 = "They're reading me. I always run the same way.",
+    IGUI_Echoes_Mind_predicted_3 = "They're cutting me off... they're learning.",
 }

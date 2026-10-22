@@ -201,7 +201,7 @@ local files = { "shared/Echoes/Core.lua", "shared/Echoes/WorldEvents.lua", "clie
   "client/Echoes/Body.lua", "client/Echoes/Psyche.lua", "client/Echoes/Phenomena.lua", "client/Echoes/Places.lua",
   "client/Echoes/Stories.lua", "client/Echoes/Senses.lua", "client/Echoes/VehicleSense.lua", "client/Echoes/Interaction.lua",
   "client/Echoes/Visual.lua", "client/Echoes/Director.lua", "client/Echoes/RoomDecay.lua", "client/Echoes/Fear.lua",
-  "client/Echoes/Dizzy.lua", "client/Echoes/Effects.lua", "client/Echoes/Mind.lua", "client/Echoes/Actions.lua", "client/Echoes/Physical.lua", "client/Echoes/Daze.lua", "server/Echoes/ZombieAwareness.lua", "server/Echoes/ZombieTactics.lua", "server/Echoes/Brain.lua", "server/Echoes/Tracking.lua",
+  "client/Echoes/Dizzy.lua", "client/Echoes/Effects.lua", "client/Echoes/Mind.lua", "client/Echoes/Actions.lua", "client/Echoes/Physical.lua", "client/Echoes/Daze.lua", "server/Echoes/ZombieAwareness.lua", "server/Echoes/ZombieTactics.lua", "server/Echoes/Brain.lua", "server/Echoes/Learn.lua", "server/Echoes/Tracking.lua",
   "server/Echoes/RadioSignals.lua", "client/Echoes/Debug.lua" }
 for _, f in ipairs(files) do dofile((BASE or ".") .. "/Echoes/42/media/lua/" .. f) end
 
@@ -249,8 +249,12 @@ do
     z.pos.md.echoesP = { nose = 1, persist = 0.5, bold = 0.95 }
   end
   extra[1].pos.md.echoesRole, extra[1].pos.md.echoesAmmo, extra[1].pos.md.echoesSkill = "gunner", 6, 0.95
-  for _ = 1, 40 do ticks(1, 600) end
+  for _ = 1, 80 do px = px + 1.2; ticks(1, 600) end -- the player always flees the same way: the horde should learn it
   check((Echoes.Counters["ai.shot"] or 0) >= 1, "an armed zombie that sees its target aims and fires")
+  local lx, ly, lc = Echoes.Learn.predict(player, px, 100.5, 3000)
+  check(lx ~= nil and lc > 0 and lx > px, "the horde learned the player's flight direction and predicts ahead of them")
+  check(#Echoes.Learn.summary(player) > 0, "the learn summary prints")
+  px = 100.5
   local planned = (Echoes.Counters["brain.flank"] or 0) + (Echoes.Counters["brain.cordon"] or 0)
   check(planned >= 1, "hunters flank or cordon")
   for i = 1, 5 do extra[i].getTarget = function() return nil end end

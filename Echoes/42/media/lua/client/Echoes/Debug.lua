@@ -34,6 +34,7 @@ local function report()
         log(Echoes.Brain.summary(player))
         for _, line in ipairs(Echoes.Brain.recent()) do log("  " .. line) end
     end
+    if Echoes.Learn then log(Echoes.Learn.summary(player)) end
     local keys = {}
     for k in pairs(Echoes.Counters) do keys[#keys + 1] = k end
     table.sort(keys)

@@ -30,7 +30,7 @@ local SECTOR_MEMORY_MS = 180000
 local COMMIT_MS = 5000
 local lastTick, cursor = 0, 0
 local boards = {}
-local decisions = { press = 0, flank = 0, cordon = 0, investigate = 0, sweep = 0 }
+local decisions = { press = 0, flank = 0, cordon = 0, investigate = 0, sweep = 0, intercept = 0 }
 local recent = {}
 
 local function note(kind, why)
@@ -85,8 +85,8 @@ local function freeSquareNear(x, y, z)
 end
 
 -- Picks the next sweep sector around the last sighting that nobody took in the last 3 minutes.
-local function nextSector(b, now)
-    local start = 1 + ZombRand(8)
+local function nextSector(b, now, prefer)
+    local start = prefer or (1 + ZombRand(8))
     for i = 0, 7 do
         local idx = 1 + (start - 1 + i) % 8
         if now - (b.sectors[idx] or -1e9) > SECTOR_MEMORY_MS then
@@ -136,6 +136,20 @@ local function decide(z, p, b, conf, hunters, now)
                 return
             end
         end
+        -- INTERCEPT: a bold hunter that is not close cuts the player off where their learned habit says they are heading.
+        if Echoes.Learn and not gunner and pers.bold > 0.5 and d >= 8 and d <= 25 then
+            local ix, iy, ic, ib = Echoes.Learn.predict(p, p:getX(), p:getY(), 4000)
+            if ix and ic >= 0.3 then
+                local sq = freeSquareNear(ix, iy, p:getZ())
+                if sq then
+                    goTo(z, sq, now)
+                    Echoes.Learn.expect(p, ix, iy, now + 4000)
+                    note("intercept", string.format("hunter %.0f tiles away cuts off the habit direction %d (confidence %.2f)", d, ib, ic))
+                    if Echoes.Mind and p == getPlayer() then Echoes.Mind.react("predicted", 0.35) end
+                    return
+                end
+            end
+        end
         -- FLANK: with 3+ hunters, bold ones at a distance cut in from the side.
         if hunters >= 3 and not gunner and pers.bold > 0.6 and d >= 8 and d <= 20 then
             local ang = math.atan2(z:getY() - p:getY(), z:getX() - p:getX()) + ((ZombRand(2) == 0) and 1.2 or -1.2)
@@ -154,12 +168,35 @@ local function decide(z, p, b, conf, hunters, now)
         local dl = math.sqrt((z:getX() - b.x) ^ 2 + (z:getY() - b.y) ^ 2)
         if dl > 6 then
             local sq = freeSquareNear(b.x, b.y, b.z)
+            local why = string.format("lost the target, goes to the last sighting %.0f tiles away (confidence %.2f)", dl, conf)
+            if Echoes.Learn then
+                local ix, iy, ic = Echoes.Learn.predict(p, b.x, b.y, now - b.t)
+                if Echoes.Learn.hideProb(p) > 0.5 and not b.indoors then
+                    local doors = Echoes.doorSquares(math.floor(b.x), math.floor(b.y), math.floor(b.z), 12)
+                    if #doors > 0 then
+                        sq = doors[1 + ZombRand(#doors)]
+                        why = string.format("lost the target; this player usually runs indoors (%.0f%%), checks a nearby door", 100 * Echoes.Learn.hideProb(p))
+                    end
+                elseif ix and ic >= 0.3 then
+                    local psq = freeSquareNear(ix, iy, b.z)
+                    if psq then
+                        sq = psq
+                        Echoes.Learn.expect(p, ix, iy, now + 3000)
+                        why = string.format("lost the target; predicts the player ~%.0f tiles from the last sighting (confidence %.2f)", math.sqrt((ix - b.x) ^ 2 + (iy - b.y) ^ 2), ic)
+                    end
+                end
+            end
             if sq then
                 goTo(z, sq, now)
-                note("investigate", string.format("lost the target, goes to the last sighting %.0f tiles away (confidence %.2f)", dl, conf))
+                note("investigate", why)
             end
         else
-            local sq, idx = nextSector(b, now)
+            local prefer
+            if Echoes.Learn then
+                local _, _, ic, ib = Echoes.Learn.predict(p, b.x, b.y, 0)
+                if ic and ic >= 0.3 then prefer = ib end -- sweep first the way this player tends to go
+            end
+            local sq, idx = nextSector(b, now, prefer)
             if sq then
                 goTo(z, sq, now)
                 note("sweep", string.format("at the last sighting, sweeps sector %d", idx))
@@ -181,6 +218,7 @@ local function tick()
         local conf = confidence(b, now)
         local hunters = 0
         for _, z in ipairs(zs) do if z:getTarget() == p then hunters = hunters + 1 end end
+        if Echoes.Learn then Echoes.safe("Learn.sample", Echoes.Learn.sample, p, hunters, now) end
         -- Round-robin over the crowd with a fixed budget.
         local n = #zs
         if n > 0 then
@@ -193,13 +231,13 @@ local function tick()
 end
 
 Events.OnTick.Add(function() if Config.isEnabled("Brain") then Echoes.safe("Brain.tick", tick) end end)
-Events.OnGameStart.Add(function() lastTick, cursor, boards, recent = 0, 0, {}, {}; decisions = { press = 0, flank = 0, cordon = 0, investigate = 0, sweep = 0 } end)
+Events.OnGameStart.Add(function() lastTick, cursor, boards, recent = 0, 0, {}, {}; decisions = { press = 0, flank = 0, cordon = 0, investigate = 0, sweep = 0, intercept = 0 } end)
 
 function Brain.summary(player)
     local b = boards[ZU.playerKey(player)]
     local now = getTimestampMs()
     local belief = b and b.t > -1e8 and string.format("last seen %.0fs ago conf=%.2f indoors=%s", (now - b.t) / 1000, confidence(b, now), tostring(b.indoors)) or "no sighting yet"
-    return "brain: " .. belief .. string.format(" | press=%d flank=%d cordon=%d investigate=%d sweep=%d", decisions.press, decisions.flank, decisions.cordon, decisions.investigate, decisions.sweep)
+    return "brain: " .. belief .. string.format(" | press=%d flank=%d intercept=%d cordon=%d investigate=%d sweep=%d", decisions.press, decisions.flank, decisions.intercept, decisions.cordon, decisions.investigate, decisions.sweep)
 end
 
 function Brain.recent() return recent end
