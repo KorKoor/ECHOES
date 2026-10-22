@@ -61,3 +61,8 @@ Copia de `console.txt` las líneas que empiezan por `[Echoes`, `[EchoesProbe]`, 
 - Validado: F7 imprime el informe; fenómeno `footsteps` disparado por el Director; alarma lejana y radio de supervivientes arrancan; oído (hearing adjusted=78/78, meanFactor medio 0.415 entre casa y exterior) y visión (forced>0) actúan.
 - Sin validar: miedo/trauma/mareo/sordera tras una mordida o persecución (no se llegó a leer un informe posterior); ruido con efecto (`noise adjusted=0`, modo observar); `loudEvents`; capa visual.
 - Hallado: `GameSounds` no tiene sonido de respiración humana (`breath` solo daba `FishBreath`); la búsqueda por patrón ahora excluye animal/fish/canned/plant. `ZombieBuddy.getPolicy/getJavaModStatus` no existen en 2.3.4.
+## Efectos de pantalla (nuevo, sin validar)
+- F6 activa/desactiva en partida todos los efectos de pantalla (por personaje; por defecto ON en un jugador): viñeta que late con el miedo, mareo (giro de pantalla), y pérdida de color (`Daze`: control DESATURATION del clima, el mismo que usa el panel admin del juego). Funciona aunque los valores guardados del mundo digan false.
+- F8: demo de 6 s de mareo. Esperado: la pantalla gira suavemente; si no, `Viewpoint` puede estar usando su propia cámara.
+- Sin implementar (no hay API verificada desde Lua): temblor/sacudida de cámara, desenfoque real. Hoy el temblor solo se refleja en la viñeta y el color.
+- Comprobar: `[Echoes] colour drain` / errores `colour drain failed` en console.txt, que el color vuelve a la normalidad al calmarse, y la línea `events:` (`effects.on`/`effects.off`).

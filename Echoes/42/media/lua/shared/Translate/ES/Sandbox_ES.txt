@@ -20,6 +20,7 @@ Sandbox_ES = {
     Sandbox_Echoes_ScentEnabled = "Los zombis pueden seguir tu rastro de olor (sangre, esfuerzo; la lluvia lo borra)",
     Sandbox_Echoes_PackAlertEnabled = "Los zombis que te persiguen atraen hacia sí a los zombis cercanos inactivos",
     Sandbox_Echoes_FearEnabled = "Miedo: latido y tensión (no cambia estadísticas del juego)",
+    Sandbox_Echoes_DazeEnabled = "Pérdida de color: la pantalla se apaga con miedo, mareo y temblor",
     Sandbox_Echoes_DizzinessEnabled = "Mareo: balanceo de pantalla tras agotamiento, pérdida de sangre o frío (experimental)",
     Sandbox_Echoes_ScentStrength = "Multiplicador de intensidad del olor (0-2)",
     Sandbox_Echoes_DizzinessScale = "Multiplicador de amplitud del mareo (0-3)",

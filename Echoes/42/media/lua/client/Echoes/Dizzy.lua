@@ -128,9 +128,9 @@ Events.EveryOneMinute.Add(function()
     Echoes.safe("Dizzy.update", update, player)
 end)
 
--- Debug demo, independent of the sandbox switch: F8 = 6 seconds of strong rotation.
+-- Demo, independent of the sandbox switch and of Debug: F8 = 6 seconds of strong rotation.
 Events.OnKeyPressed.Add(function(key)
-    if key == Keyboard.KEY_F8 and Config.get("Debug") then
+    if key == Keyboard.KEY_F8 then
         demoUntil = getTimestampMs() + 6000
         local player = getPlayer()
         if player then Echoes.safe("Dizzy.demo", update, player) end

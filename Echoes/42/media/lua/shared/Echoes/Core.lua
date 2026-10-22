@@ -40,7 +40,7 @@ local defaults = {
     ScentStrength = 1.0,
     PackAlertEnabled = true,
     FearEnabled = true,
-    DizzinessEnabled = false,
+    DizzinessEnabled = true,
     DizzinessScale = 1.0,
     EngineHearingEnabled = true,
     EngineStrength = 1.0,
@@ -48,13 +48,20 @@ local defaults = {
     EngineNoiseStrength = 1.0,
     EngineStealthEnabled = false,
     EngineStealthStrength = 0.6,
-    VisualEnabled = false,
+    VisualEnabled = true,
     ApparitionsEnabled = false,
+    DazeEnabled = true,
     Frequency = 1.0,
     Debug = false,
 }
 
+-- Runtime overrides (single player): let the player turn the screen effects on or off in a world whose saved sandbox
+-- values say otherwise (see client/Echoes/Effects.lua). Never applied in multiplayer, where the server's sandbox decides.
+Echoes.Config.override = {}
+
 function Echoes.Config.get(key)
+    local ov = Echoes.Config.override[key]
+    if ov ~= nil then return ov end
     local v = SandboxVars and SandboxVars.Echoes and SandboxVars.Echoes[key]
     if v == nil then return defaults[key] end
     return v

@@ -80,7 +80,7 @@ option Echoes.StoriesEnabled
 
 option Echoes.VisualEnabled
 {
-    type = boolean, default = false,
+    type = boolean, default = true,
     page = Echoes, translation = Echoes_VisualEnabled,
 }
 
@@ -120,9 +120,15 @@ option Echoes.FearEnabled
     page = Echoes, translation = Echoes_FearEnabled,
 }
 
+option Echoes.DazeEnabled
+{
+    type = boolean, default = true,
+    page = Echoes, translation = Echoes_DazeEnabled,
+}
+
 option Echoes.DizzinessEnabled
 {
-    type = boolean, default = false,
+    type = boolean, default = true,
     page = Echoes, translation = Echoes_DizzinessEnabled,
 }
 

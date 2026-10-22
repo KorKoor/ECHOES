@@ -26,7 +26,7 @@ end
 local function ticks(n, ms) for _ = 1, n do tms = tms + (ms or 200); fire('OnTick') end end
 
 require = function() return true end
-Keyboard = { KEY_F9 = 67, KEY_F8 = 66, KEY_F10 = 68, KEY_F7 = 65 }
+Keyboard = { KEY_F6 = 64, KEY_F9 = 67, KEY_F8 = 66, KEY_F10 = 68, KEY_F7 = 65 }
 SandboxVars = { Echoes = { Debug = true, Frequency = 4, DizzinessEnabled = true, VisualEnabled = true,
   ApparitionsEnabled = true, EngineNoiseEnabled = true, EngineStealthEnabled = true } }
 math.randomseed(tonumber(SEED) or 1)
@@ -138,7 +138,8 @@ function getOnlinePlayers() return list({ player }) end
 function getCell() return cell end
 function getGameTime() return { getWorldAgeHours = function() return gh end, getHour = function() return 6 end } end
 function getClimateManager() return { getNightStrength = function() return 0.9 end, getRainIntensity = function() return 0.5 end,
-  getWindIntensity = function() return 0.2 end, getFogIntensity = function() return 0 end } end
+  getWindIntensity = function() return 0.2 end, getFogIntensity = function() return 0 end,
+  getClimateFloat = function() return { setEnableAdmin = function() end, setAdminValue = function() end } end } end
 function getWorld() return { getFreeEmitter = function(_, x, y, z) return { playSound = function(_, n) played[#played+1] = n; return 1 end,
   setVolume = function(_, h, v) played[#played+1] = string.format("vol=%.2f", v) end, setPitch = function() end } end,
   isHydroPowerOn = function() return true end } end
@@ -200,7 +201,7 @@ local files = { "shared/Echoes/Core.lua", "shared/Echoes/WorldEvents.lua", "clie
   "client/Echoes/Body.lua", "client/Echoes/Psyche.lua", "client/Echoes/Phenomena.lua", "client/Echoes/Places.lua",
   "client/Echoes/Stories.lua", "client/Echoes/Senses.lua", "client/Echoes/VehicleSense.lua", "client/Echoes/Interaction.lua",
   "client/Echoes/Visual.lua", "client/Echoes/Director.lua", "client/Echoes/RoomDecay.lua", "client/Echoes/Fear.lua",
-  "client/Echoes/Dizzy.lua", "server/Echoes/ZombieAwareness.lua", "server/Echoes/Tracking.lua",
+  "client/Echoes/Dizzy.lua", "client/Echoes/Effects.lua", "client/Echoes/Daze.lua", "server/Echoes/ZombieAwareness.lua", "server/Echoes/Tracking.lua",
   "server/Echoes/RadioSignals.lua", "client/Echoes/Debug.lua" }
 for _, f in ipairs(files) do dofile((BASE or ".") .. "/Echoes/42/media/lua/" .. f) end
 

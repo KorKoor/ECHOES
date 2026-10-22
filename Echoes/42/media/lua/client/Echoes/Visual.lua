@@ -169,6 +169,11 @@ local function createPanel()
     Log.info("visual overlay created")
 end
 
+-- Creates the overlay if it is wanted now but was not made at game start (effects switched on at runtime).
+function Visual.ensure()
+    if Config.isEnabled("Visual") and not panel then Echoes.safe("Visual.createPanel", createPanel) end
+end
+
 function Visual.available()
     if not Config.isEnabled("Visual") or not Config.isEnabled("Apparitions") or not panel then return {} end
     return { { id = "apparition", weight = 0.08, ambiguous = true, run = Visual.apparition } }
