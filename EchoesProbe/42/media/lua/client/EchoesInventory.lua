@@ -49,9 +49,13 @@ local function zbStatus()
     section("ZombieBuddy and Java mods")
     if not ZombieBuddy then log("ZombieBuddy global not present"); return end
     try("version", function() log("ZombieBuddy " .. tostring(ZombieBuddy.getVersion())) end)
-    try("policy", function() log("policy " .. tostring(ZombieBuddy.getPolicy())) end)
+    try("policy", function()
+        if type(ZombieBuddy.getPolicy) ~= "function" then log("ZombieBuddy.getPolicy not available in 2.3.4") return end
+        log("policy " .. tostring(ZombieBuddy.getPolicy()))
+    end)
     for _, id in ipairs({ "Viewpoint", "ZombieBuddy", "EchoesEngine" }) do
         try("status " .. id, function()
+            if type(ZombieBuddy.getJavaModStatus) ~= "function" then log("ZombieBuddy.getJavaModStatus not available in 2.3.4") return end
             local s = ZombieBuddy.getJavaModStatus(id)
             if not s then log("javaMod[" .. id .. "] = no JAR considered") return end
             log("javaMod[" .. id .. "] loaded=" .. tostring(s.loaded) .. " reason=" .. tostring(s.reason))

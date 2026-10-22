@@ -1,4 +1,4 @@
--- ECHOES debug (client): F7 prints a status report to console.txt (Debug sandbox option must be on).
+-- ECHOES debug (client): F7 prints a status report to console.txt (works without the Debug option; the periodic report needs it).
 -- Everything in one place so a single log line block shows the state of every module and the cost of each.
 
 require "Echoes/Core"
@@ -35,7 +35,7 @@ end
 Echoes.report = report
 
 Events.OnKeyPressed.Add(function(key)
-    if key == Keyboard.KEY_F7 and Config.get("Debug") then Echoes.safe("report", report) end
+    if key == Keyboard.KEY_F7 then Echoes.safe("report", report) end
 end)
 
 -- Every in-game 6 hours, with Debug on, drop the cost table in the log so long sessions leave evidence.
