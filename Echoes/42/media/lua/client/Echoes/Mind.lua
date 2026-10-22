@@ -6,6 +6,9 @@
 --   * A startle may be followed a moment later by a second line: self-reassurance for the brave, a spiral for the shaken.
 --   * Reactions: unexplained phenomena, unseen zombies, kills and kill streaks, wounds, thunder and rain, entering a
 --     vehicle, dusk and dawn, survival milestones, radio and alarms, bleeding, tiredness, loneliness, relief after a chase.
+--   * Memory of places: near a spot where something unexplained happened before, it remembers ("not here again").
+--   * Refuge: long enough in one quiet room and the character settles (lines, a little calm). Nightmares while asleep
+--     when traumatised. Weather and body feel: fog, cold.
 --   * Interactions (right-click): "Breathe deeply" lowers ECHOES fear; "Reflect" says where you stand (days, kills,
 --     mood) and settles you a little. Neither works with a zombie close by.
 -- It changes no vanilla stat. UNTESTED in game: Say output, the context options, the timed actions, event arguments
@@ -25,6 +28,8 @@ local URGENT_GAP_MS = 6000    -- pain and sudden shocks may speak sooner
 local KIND_GAP_MS = 200000    -- the same kind is not repeated within this time
 local lastAny, lastKind, prevFear = 0, {}, 0
 local killTimes = {}
+local lastStartleHours = -1000
+local refuge = { room = nil, since = 0 }
 
 -- Temperament and memory -------------------------------------------------------------------------------------
 local function memory(player)
@@ -98,6 +103,7 @@ function Mind.startle(id)
     local mem = getPlayer() and memory(getPlayer())
     if not mem then return end
     mem.startles = mem.startles + 1
+    lastStartleHours = getGameTime():getWorldAgeHours()
     local follow = (ZombRandFloat(0, 1) < mem.courage) and "reassure" or "spiral"
     if ZombRandFloat(0, 1) > 0.5 then follow = nil end
     Mind.react("startle", 0.7, { sub = id, follow = follow, urgent = true })
@@ -133,6 +139,45 @@ local function update(player)
     local endurance = Echoes.statNorm(player, "ENDURANCE")
     if (fatigue and fatigue > 0.8) or (endurance and endurance < 0.15) then Mind.react("tired", 0.2) end
     if state == "calm" and fear < 0.1 and mem.gloom > 0.5 and ZombRandFloat(0, 1) < 0.03 then Mind.react("hope", 0.5) end
+    if Echoes.Body and Echoes.Body.state.cold then Mind.react("cold", 0.25) end
+    if player:isAsleep() then
+        local trauma = Echoes.Psyche and Echoes.Psyche.trauma(player) or 0
+        if (trauma >= 0.3 or mem.gloom > 0.6) and ZombRandFloat(0, 1) < 0.15 then
+            Mind.react("nightmare", 1.0, { urgent = true })
+        end
+        return
+    end
+    Mind.places(player, mem)
+    Mind.refuge(player, mem)
+end
+
+-- Memory of places --------------------------------------------------------------------------------------------
+function Mind.places(player, mem)
+    local places = Echoes.playerData(player).places
+    if not places or #places == 0 then return end
+    local px, py = player:getX(), player:getY()
+    local best, bd = nil, 144 -- within 12 tiles
+    for _, pl in ipairs(places) do
+        local dx, dy = pl.x - px, pl.y - py
+        local d = dx * dx + dy * dy
+        if d < bd and (pl.w or 0) >= 1.0 then best, bd = pl, d end
+    end
+    if best then Mind.react("place", 0.45, { sub = best.theme }) end
+end
+
+-- Refuge: the same room for ~20 game minutes with nothing startling it ---------------------------------------
+function Mind.refuge(player, mem)
+    local sq = player:getCurrentSquare()
+    local room = sq and sq:getRoom()
+    local now = getGameTime():getWorldAgeHours()
+    if not room then refuge.room = nil; return end
+    if refuge.room ~= room then refuge.room, refuge.since = room, now; return end
+    if now - refuge.since >= 0.35 and now - lastStartleHours >= 0.5 then
+        if #Echoes.ZombieUtil.nearbyZombies({ player }, 15, 1) == 0 then
+            if Echoes.Fear and Echoes.Fear.calm then Echoes.Fear.calm(0.03) end
+            Mind.react("refuge", 0.35)
+        end
+    end
 end
 
 Events.EveryOneMinute.Add(function()
@@ -164,6 +209,8 @@ Events.EveryHours.Add(function()
                 end
             end
         end
+        local okf, fog = pcall(function() return getClimateManager():getFogIntensity() end)
+        if okf and type(fog) == "number" and fog > 0.4 then Mind.react("fog", 0.3) end
         local sq = player:getCurrentSquare()
         if hour >= 22 and sq and not sq:isOutside() and (Echoes.Psyche and Echoes.Psyche.pressure or 0) > 0.3 then
             Mind.react("alone", 0.3 + 0.2 * mem.gloom)
