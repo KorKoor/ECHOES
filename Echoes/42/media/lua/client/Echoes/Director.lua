@@ -265,6 +265,7 @@ function Director.evaluate(force)
     if place and usedPlace and Echoes.Places then Echoes.Places.escalate(place) end -- only if the place was really used
 
     if kind.ambiguous and Echoes.Fear then Echoes.Fear.shock(0.12 + 0.2 * pressure) end
+    if kind.ambiguous and Echoes.Mind then Echoes.Mind.react("startle", 0.6) end
 
     mem.last = t
     mem.log[#mem.log + 1] = { id = kind.id, sq = not kind.run, x = sq:getX(), y = sq:getY(), z = sq:getZ(), t = t,

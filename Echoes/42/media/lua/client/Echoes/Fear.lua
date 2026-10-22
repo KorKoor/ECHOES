@@ -29,6 +29,13 @@ function Fear.shock(v)
     end
 end
 
+-- Deliberate calming (breathing deeply): lowers the level and the pending shock.
+function Fear.calm(v)
+    v = v or 0.3
+    shockValue = math.max(0, shockValue - v)
+    Fear.level = Echoes.clamp(Fear.level - v, 0, 1)
+end
+
 local function compute(player)
     local stats = player:getStats()
     local visible, chasing = 0, 0

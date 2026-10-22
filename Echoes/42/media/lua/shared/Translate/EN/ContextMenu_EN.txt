@@ -1,3 +1,4 @@
 ContextMenu_EN = {
     ContextMenu_Echoes_ListenAtDoor = "Listen at the door",
+    ContextMenu_Echoes_BreatheDeep = "Breathe deeply",
 }

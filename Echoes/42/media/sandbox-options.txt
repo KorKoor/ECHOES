@@ -120,6 +120,12 @@ option Echoes.FearEnabled
     page = Echoes, translation = Echoes_FearEnabled,
 }
 
+option Echoes.MindEnabled
+{
+    type = boolean, default = true,
+    page = Echoes, translation = Echoes_MindEnabled,
+}
+
 option Echoes.DazeEnabled
 {
     type = boolean, default = true,

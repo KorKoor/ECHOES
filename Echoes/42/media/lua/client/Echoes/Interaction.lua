@@ -57,6 +57,10 @@ function Interaction.listen(player, door)
     pcall(function()
         getWorldSoundManager():addSound(player, player:getX(), player:getY(), player:getZ(), 3, 2)
     end)
+    if heard > 0 then -- hearing something real on the other side is unsettling
+        if Echoes.Fear then Echoes.Fear.shock(0.05 * heard) end
+        if Echoes.Mind then Echoes.Mind.react("door", 0.7) end
+    end
     Log.debug("listen at door: " .. heard .. " cue(s)")
     return heard
 end
