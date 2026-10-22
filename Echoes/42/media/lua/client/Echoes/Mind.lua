@@ -98,6 +98,17 @@ function Mind.react(kind, chance, opts)
     return true
 end
 
+-- Speaks a line right away, ignoring the gaps: used by actions the player chose themself.
+function Mind.speak(kind, opts)
+    opts = opts or {}
+    local player = getPlayer()
+    if not player or player:isDead() then return false end
+    local key = pick(kind, opts.sub)
+    if not key then return false end
+    Echoes.count("mind." .. kind)
+    return say(player, key, opts.a, opts.b, opts.c)
+end
+
 -- A startle: the brave steady themself, the shaken spiral.
 function Mind.startle(id)
     local mem = getPlayer() and memory(getPlayer())
@@ -116,6 +127,7 @@ local function classify(player, mem)
     local trauma = Echoes.Psyche and Echoes.Psyche.trauma(player) or 0
     if fear >= 0.7 - 0.15 * mem.courage then return "panic" end
     if fear >= 0.4 then return "fear" end
+    if Mind.angerUntil and getTimestampMs() < Mind.angerUntil then return "anger" end
     if trauma >= 0.7 and fear < 0.3 then return "numb" end
     if pressure >= 0.45 - 0.1 * mem.gloom then return "dread" end
     return "calm"
@@ -140,6 +152,15 @@ local function update(player)
     if (fatigue and fatigue > 0.8) or (endurance and endurance < 0.15) then Mind.react("tired", 0.2) end
     if state == "calm" and fear < 0.1 and mem.gloom > 0.5 and ZombRandFloat(0, 1) < 0.03 then Mind.react("hope", 0.5) end
     if Echoes.Body and Echoes.Body.state.cold then Mind.react("cold", 0.25) end
+    if state == "anger" then Mind.react("anger", 0.4) end
+    local hunger, thirst = Echoes.statNorm(player, "HUNGER"), Echoes.statNorm(player, "THIRST")
+    if hunger and hunger > 0.6 then Mind.react("hungry", 0.2) end
+    if thirst and thirst > 0.6 then Mind.react("thirsty", 0.25) end
+    local okc, core = pcall(function() return player:getBodyDamage():getThermoregulator():getCoreCelcius() end)
+    if okc and type(core) == "number" and core > 37.6 then Mind.react("heat", 0.25) end
+    local okw, wind = pcall(function() return getClimateManager():getWindIntensity() end)
+    if okw and type(wind) == "number" and wind > 0.6 then Mind.react("wind", 0.15) end
+    if state == "calm" and fear < 0.1 and ZombRandFloat(0, 1) < 0.02 then Mind.react("nostalgia", 0.5) end
     if player:isAsleep() then
         local trauma = Echoes.Psyche and Echoes.Psyche.trauma(player) or 0
         if (trauma >= 0.3 or mem.gloom > 0.6) and ZombRandFloat(0, 1) < 0.15 then
@@ -166,6 +187,8 @@ function Mind.places(player, mem)
 end
 
 -- Refuge: the same room for ~20 game minutes with nothing startling it ---------------------------------------
+function Mind.memory(player) return memory(player) end
+
 function Mind.refuge(player, mem)
     local sq = player:getCurrentSquare()
     local room = sq and sq:getRoom()
@@ -231,6 +254,7 @@ Events.OnZombieDead.Add(function(zombie)
         killTimes[#killTimes + 1] = now
         while #killTimes > 0 and now - killTimes[1] > 60000 do table.remove(killTimes, 1) end
         if #killTimes >= 4 then Mind.react("killstreak", 0.8) else Mind.react("kill", 0.12) end
+        if mem.kills % 25 == 0 then Mind.react("guilt", 1.0, { urgent = true, a = tostring(mem.kills) }) end
     end)
 end)
 
@@ -242,6 +266,7 @@ Events.OnPlayerGetDamage.Add(function()
         local mem = memory(player)
         mem.wounds = mem.wounds + 1
         if Echoes.Fear then Echoes.Fear.shock(0.06) end
+        Mind.angerUntil = getTimestampMs() + 90000
         Mind.react("pain", 0.5, { urgent = true })
     end)
 end)
@@ -251,7 +276,7 @@ Events.OnRainStart.Add(function() Echoes.safe("Mind.rain", Mind.react, "rain", 0
 Events.OnEnterVehicle.Add(function() Echoes.safe("Mind.vehicle", Mind.react, "vehicle", 0.25) end)
 
 -- Interactions ------------------------------------------------------------------------------------------------
-local function defineAction(name, maxTime, done)
+function Mind.defineAction(name, maxTime, done)
     if _G[name] then return true end
     pcall(require, "TimedActions/ISBaseTimedAction")
     pcall(require, "TimedActions/ISTimedActionQueue")
@@ -264,11 +289,12 @@ local function defineAction(name, maxTime, done)
     function cls:stop() ISBaseTimedAction.stop(self) end
     function cls:perform()
         ISBaseTimedAction.perform(self)
-        Echoes.safe("Mind." .. name, done, self.character)
+        Echoes.safe("Mind." .. name, done, self.character, self.target)
     end
-    function cls:new(character)
+    function cls:new(character, target)
         local o = ISBaseTimedAction.new(self, character)
         o.character = character
+        o.target = target
         o.stopOnWalk = true
         o.stopOnRun = true
         o.maxTime = maxTime
@@ -312,14 +338,29 @@ local function onFillWorldObjectContextMenu(playerNum, context, worldObjects, te
     if not player or player:isDead() or player:getVehicle() then return end
     if #Echoes.ZombieUtil.nearbyZombies({ player }, 12, 1) > 0 then return end -- not with a zombie close by
     if test then return true end
-    if wantsCalm() and defineAction("ISEchoesBreathe", 200, breatheDone) then
-        context:addOption(getText("ContextMenu_Echoes_BreatheDeep"), player, function(p)
-            ISTimedActionQueue.add(ISEchoesBreathe:new(p))
-        end)
+    local entries = {}
+    if wantsCalm() and Mind.defineAction("ISEchoesBreathe", 200, breatheDone) then
+        entries[#entries + 1] = { "ContextMenu_Echoes_BreatheDeep", "ISEchoesBreathe" }
     end
-    if defineAction("ISEchoesReflect", 260, reflectDone) then
-        context:addOption(getText("ContextMenu_Echoes_Reflect"), player, function(p)
-            ISTimedActionQueue.add(ISEchoesReflect:new(p))
+    if Mind.defineAction("ISEchoesReflect", 260, reflectDone) then
+        entries[#entries + 1] = { "ContextMenu_Echoes_Reflect", "ISEchoesReflect" }
+    end
+    if Echoes.Actions then Echoes.Actions.collect(player, worldObjects, entries, context) end
+    if #entries == 0 then return end
+    -- Several choices go into a "Mind" submenu so the right-click menu does not fill up.
+    local menu = context
+    if #entries >= 2 then
+        local ok, sub = pcall(function()
+            local opt = context:addOption(getText("ContextMenu_Echoes_Mind"), nil, nil)
+            local s = ISContextMenu:getNew(context)
+            context:addSubMenu(opt, s)
+            return s
+        end)
+        if ok and sub then menu = sub end
+    end
+    for _, e in ipairs(entries) do
+        menu:addOption(getText(e[1]), player, function(p)
+            ISTimedActionQueue.add(_G[e[2]]:new(p, e[3]))
         end)
     end
 end
