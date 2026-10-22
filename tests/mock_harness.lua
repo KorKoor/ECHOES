@@ -201,7 +201,7 @@ local files = { "shared/Echoes/Core.lua", "shared/Echoes/WorldEvents.lua", "clie
   "client/Echoes/Body.lua", "client/Echoes/Psyche.lua", "client/Echoes/Phenomena.lua", "client/Echoes/Places.lua",
   "client/Echoes/Stories.lua", "client/Echoes/Senses.lua", "client/Echoes/VehicleSense.lua", "client/Echoes/Interaction.lua",
   "client/Echoes/Visual.lua", "client/Echoes/Director.lua", "client/Echoes/RoomDecay.lua", "client/Echoes/Fear.lua",
-  "client/Echoes/Dizzy.lua", "client/Echoes/Effects.lua", "client/Echoes/Mind.lua", "client/Echoes/Actions.lua", "client/Echoes/Physical.lua", "client/Echoes/Daze.lua", "server/Echoes/ZombieAwareness.lua", "server/Echoes/Tracking.lua",
+  "client/Echoes/Dizzy.lua", "client/Echoes/Effects.lua", "client/Echoes/Mind.lua", "client/Echoes/Actions.lua", "client/Echoes/Physical.lua", "client/Echoes/Daze.lua", "server/Echoes/ZombieAwareness.lua", "server/Echoes/ZombieTactics.lua", "server/Echoes/Tracking.lua",
   "server/Echoes/RadioSignals.lua", "client/Echoes/Debug.lua" }
 for _, f in ipairs(files) do dofile((BASE or ".") .. "/Echoes/42/media/lua/" .. f) end
 

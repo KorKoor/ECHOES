@@ -120,6 +120,18 @@ option Echoes.FearEnabled
     page = Echoes, translation = Echoes_FearEnabled,
 }
 
+option Echoes.ArmedZombiesEnabled
+{
+    type = boolean, default = true,
+    page = Echoes, translation = Echoes_ArmedZombiesEnabled,
+}
+
+option Echoes.TacticsEnabled
+{
+    type = boolean, default = true,
+    page = Echoes, translation = Echoes_TacticsEnabled,
+}
+
 option Echoes.FeelEnabled
 {
     type = boolean, default = true,
