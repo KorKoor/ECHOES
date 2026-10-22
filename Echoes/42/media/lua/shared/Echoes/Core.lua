@@ -56,6 +56,7 @@ local defaults = {
     FeelEnabled = true,
     ArmedZombiesEnabled = true,
     TacticsEnabled = true,
+    BrainEnabled = true,
     Frequency = 1.0,
     Debug = false,
 }

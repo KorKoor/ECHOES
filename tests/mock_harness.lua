@@ -64,7 +64,7 @@ local function newSquare(x, y, z)
   local s = { x = x, y = y, z = z }
   function s:getX() return x end function s:getY() return y end function s:getZ() return z end
   function s:isOutside() return x < -50 end
-  function s:isCouldSee() return false end function s:isFree() return true end
+  function s:isCouldSee() return couldSee == true end function s:isFree() return true end
   function s:isBlockedTo() return false end
   function s:getLightLevel() return 0.2 end
   function s:haveBloodFloor() return (x + y) % 5 == 0 end
@@ -201,7 +201,7 @@ local files = { "shared/Echoes/Core.lua", "shared/Echoes/WorldEvents.lua", "clie
   "client/Echoes/Body.lua", "client/Echoes/Psyche.lua", "client/Echoes/Phenomena.lua", "client/Echoes/Places.lua",
   "client/Echoes/Stories.lua", "client/Echoes/Senses.lua", "client/Echoes/VehicleSense.lua", "client/Echoes/Interaction.lua",
   "client/Echoes/Visual.lua", "client/Echoes/Director.lua", "client/Echoes/RoomDecay.lua", "client/Echoes/Fear.lua",
-  "client/Echoes/Dizzy.lua", "client/Echoes/Effects.lua", "client/Echoes/Mind.lua", "client/Echoes/Actions.lua", "client/Echoes/Physical.lua", "client/Echoes/Daze.lua", "server/Echoes/ZombieAwareness.lua", "server/Echoes/ZombieTactics.lua", "server/Echoes/Tracking.lua",
+  "client/Echoes/Dizzy.lua", "client/Echoes/Effects.lua", "client/Echoes/Mind.lua", "client/Echoes/Actions.lua", "client/Echoes/Physical.lua", "client/Echoes/Daze.lua", "server/Echoes/ZombieAwareness.lua", "server/Echoes/ZombieTactics.lua", "server/Echoes/Brain.lua", "server/Echoes/Tracking.lua",
   "server/Echoes/RadioSignals.lua", "client/Echoes/Debug.lua" }
 for _, f in ipairs(files) do dofile((BASE or ".") .. "/Echoes/42/media/lua/" .. f) end
 
@@ -236,6 +236,32 @@ px = 100.5
 -- pack alert: one zombie chases, the others are idle
 ztarget = {}; fire("EveryOneMinute"); ztarget = nil
 
+-- tactics and brain: hunters with line of sight, one an armed police zombie; the player runs indoors
+do
+  couldSee = true
+  local fired, hits0 = 0, #played
+  local origBD = player.getBodyDamage
+  BodyPartType = setmetatable({}, { __index = function(_, k) return k end })
+  player.getBodyDamage = function() local b = origBD(); b.getBodyPart = function() return { damageFromFirearm = function(_, v) fired = fired + v end } end; return b end
+  for i = 1, 5 do
+    local z = extra[i]
+    z.getTarget = function() return player end
+    z.pos.md.echoesP = { nose = 1, persist = 0.5, bold = 0.95 }
+  end
+  extra[1].pos.md.echoesRole, extra[1].pos.md.echoesAmmo, extra[1].pos.md.echoesSkill = "gunner", 6, 0.95
+  for _ = 1, 40 do ticks(1, 600) end
+  check((Echoes.Counters["ai.shot"] or 0) >= 1, "an armed zombie that sees its target aims and fires")
+  local planned = (Echoes.Counters["brain.flank"] or 0) + (Echoes.Counters["brain.cordon"] or 0)
+  check(planned >= 1, "hunters flank or cordon")
+  for i = 1, 5 do extra[i].getTarget = function() return nil end end
+  for _ = 1, 20 do ticks(1, 1100) end
+  check((Echoes.Counters["brain.investigate"] or 0) + (Echoes.Counters["brain.sweep"] or 0) >= 1, "zombies that lost the target investigate or sweep")
+  extra[1].pos.md.echoesAmmo = 0
+  fire("OnWeaponHitCharacter", player, extra[2], nil, 5)
+  player.getBodyDamage = origBD
+  couldSee = false
+end
+
 -- driving: blind-spot cue path and cabin muffling
 inVehicle = true
 for _ = 1, 3 do fire("EveryOneMinute") end
@@ -263,6 +289,24 @@ for _, z in ipairs(extra) do z.pos.x = 400 end
 for _ = 1, 80 do gh = gh + 5; Echoes.Director.evaluate(true) end
 check(count("DoorOpen") + count("DoorClose") + count("TOGGLE") >= 1, "door phenomena happen")
 fire("OnKeyPressed", 65)
+
+-- right-click menu away from zombies: the Mind submenu entries and their actions
+do
+  for i = #queued, 1, -1 do table.remove(queued, i) end
+  Echoes.Fear.level = 0.5
+  tms = tms + 1000; Echoes.ZombieUtil.resetCache() -- the shared nearby-zombie scan must not be stale
+  local opts = {}
+  local ctx2 = { addOption = function(_, label, target, fn) opts[#opts+1] = { label = label, target = target, fn = fn } end }
+  fire("OnFillWorldObjectContextMenu", 0, ctx2, {}, false)
+  check(#opts >= 3, "the Mind actions are offered when scared and alone")
+  for _, op in ipairs(opts) do if op.fn then op.fn(op.target) end end
+  for _, a in ipairs(queued) do if a.perform then a:perform() end end
+  Echoes.Mind.react("startle", 1.0, { sub = "footsteps", urgent = true })
+  Echoes.Mind.react("pain", 1.0, { urgent = true })
+  fire("OnZombieDead", { getX = function() return 100.5 end, getY = function() return 101.5 end })
+  fire("OnPlayerGetDamage")
+  fire("OnThunderEvent"); fire("OnRainStart"); fire("OnEnterVehicle")
+end
 
 check(count("LOCK=") >= 0, "(story lock is optional)")
 check(Echoes.Perf and next(Echoes.Perf.stats) ~= nil, "Perf accounting records calls")

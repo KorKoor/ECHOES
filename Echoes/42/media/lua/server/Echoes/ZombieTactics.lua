@@ -202,7 +202,8 @@ local function tick()
     local players = ZU.players()
     if #players == 0 then return end
     if Config.isEnabled("ArmedZombies") then Echoes.safe("Tactics.shoot", shoot, players, now) end
-    if Config.isEnabled("Tactics") then Echoes.safe("Tactics.plan", plan, players, now) end
+    -- Flanking is owned by Brain when it is on (it adds beliefs, cordons and sweeps); this older planner is the fallback.
+    if Config.isEnabled("Tactics") and not Config.isEnabled("Brain") then Echoes.safe("Tactics.plan", plan, players, now) end
 end
 
 Events.OnTick.Add(tick)

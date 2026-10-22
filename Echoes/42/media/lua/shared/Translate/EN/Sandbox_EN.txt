@@ -21,6 +21,7 @@ Sandbox_EN = {
     Sandbox_Echoes_PackAlertEnabled = "Zombies chasing you draw nearby idle zombies toward themselves",
     Sandbox_Echoes_FearEnabled = "Fear: heartbeat and tension (no vanilla stat changes)",
     Sandbox_Echoes_ArmedZombiesEnabled = "Armed zombies: police and soldiers may keep a weapon, aim and fire (limited ammo)",
+    Sandbox_Echoes_BrainEnabled = "Zombie brain: shared beliefs about where you were last seen, investigate, sweep sectors, flank and cover a building's exits",
     Sandbox_Echoes_TacticsEnabled = "Zombie tactics: packs that flank and zombies that hold a grudge",
     Sandbox_Echoes_FeelEnabled = "Real emotions: actions and frights move the game's own stress, panic, anger and unhappiness",
     Sandbox_Echoes_PhysicalEnabled = "Physical: stumbles and falls from exhaustion, dizziness or panic, and bruising door collisions at a sprint",
